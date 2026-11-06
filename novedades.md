@@ -1,6 +1,6 @@
-Versión: 1.4.0
-- La música pasa sola a la siguiente canción al terminar
-- Reproducción automática: al acabar la lista siguen canciones parecidas (se puede apagar en Perfil)
-- Cambiar de canción es instantáneo: las 2 siguientes ya quedan preparadas
-- Al cambiar de canción, la anterior se detiene al momento (ya no suenan dos a la vez)
-- El botón de repetir muestra claro cuando está en "repetir esta canción"
+Versión: 1.5.0
+- Al entrar eliges tus artistas favoritos (mínimo 4) y "Tus favoritos del momento" se llena con su música
+- Top de hoy con los éxitos reales: Top Mundial y lo más sonado en tu país
+- Descarga canciones con el botón pequeño y escúchalas sin internet (sección Descargas)
+- En cada artista: "Todas las canciones", ordenadas por populares, A-Z o duración
+- Al terminar la música siguen más canciones del mismo artista y parecidas, también en aleatorio
