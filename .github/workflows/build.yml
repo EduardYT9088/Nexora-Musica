@@ -2008,7 +2008,6 @@ jobs:
           import json, os, re
           run = int(os.environ['RUN'])
           ver = '1.0.' + str(run)
-          code = 10000 + run          # siempre sube: Android exige versionCode mayor para actualizar
           lines = []
           try:
               lines = [l.strip() for l in open('novedades.md', encoding='utf-8-sig').read().splitlines()]
@@ -2019,6 +2018,17 @@ jobs:
               if m:
                   ver = m.group(1)
                   break
+          # versionCode sale de la versión (1.6.1 -> 10601xxx) y no del número de compilación:
+          # así sigue subiendo aunque cambies el nombre del repo o crees uno nuevo.
+          pv = [int(x) for x in (ver.split('.') + ['0', '0'])[:3]]
+          code = 10000000 + (pv[0] * 10000 + pv[1] * 100 + pv[2]) * 1000 + run % 1000
+          # La app busca las actualizaciones en ESTE repo (aunque lo renombres)
+          owner, name = os.environ['REPO'].split('/', 1)
+          ip = 'proyecto/app/src/main/assets/index.html'
+          h = open(ip, encoding='utf-8').read()
+          h = re.sub(r"const REPO = '[^']*';", "const REPO = '" + os.environ['REPO'] + "';", h, count=1)
+          h = re.sub(r"const PRIVACY_URL = '[^']*';", "const PRIVACY_URL = 'https://" + owner.lower() + ".github.io/" + name + "/privacidad.html';", h, count=1)
+          open(ip, 'w', encoding='utf-8').write(h)
           opcional = any(l.lower().startswith('[opcional]') for l in lines)
           nov = [l[1:].strip() for l in lines if l.startswith('-') and l[1:].strip()]
           p = 'proyecto/app/build.gradle.kts'
