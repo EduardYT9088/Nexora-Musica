@@ -1,4 +1,6 @@
-Versión: 1.6.0
+Versión: 1.6.1
+- Arreglado: la app ahora sí avisa cuando subes una versión nueva (buscaba en el repositorio equivocado)
+- Mensajes de error más claros al iniciar sesión con teléfono
 - Al entrar: inicia sesión con Google, correo o teléfono, o entra como invitado
 - Los invitados pueden escuchar música; descargar y poner foto de perfil requiere iniciar sesión
 - Artistas con toda su música: se revisan todos sus álbumes, no solo las populares

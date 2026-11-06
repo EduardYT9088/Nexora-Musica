@@ -872,8 +872,8 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
    Música NX · © 2026 Nexora · Eduard Gamer
    ========================================================= */
 const A = window.Android || null;
-const REPO = 'EduardYT9088/Musica-NX';
-const PRIVACY_URL = 'https://eduardyt9088.github.io/Musica-NX/privacidad.html';
+const REPO = 'EduardYT9088/Nexora-Musica';   // GitHub lo cambia solo al compilar
+const PRIVACY_URL = 'https://eduardyt9088.github.io/Nexora-Musica/privacidad.html';
 const DZ = 'https://api.deezer.com';
 /* ===== Inicio de sesión: pega aquí los datos de tu proyecto de Firebase (ver instrucciones) ===== */
 const FIREBASE = { apiKey: 'AIzaSyDY64MCMPqH5uYmXv_bRYCngNy4i-lrDMw', authDomain: 'nexora-music-32aae.firebaseapp.com', projectId: 'nexora-music-32aae', appId: '1:124788812535:web:86301f78f99b7265bd01f2' };
@@ -2721,12 +2721,14 @@ async function fb() {
 }
 function fbErr(e) {
   const c = (e && (e.code || e.message)) || '';
+  const raw = String((e && e.message) || '');
+  if (c === 'auth/operation-not-allowed' && /region/i.test(raw)) return 'Firebase no permite enviar SMS a este país todavía. Por ahora usa Google o correo.';
   if (c === 'noconfig') return 'El inicio de sesión aún no está configurado en esta versión. Entra como invitado por ahora.';
   const M = { 'auth/invalid-email': 'El correo no es válido.', 'auth/user-not-found': 'No existe una cuenta con ese correo.', 'auth/wrong-password': 'La contraseña no es correcta.', 'auth/invalid-credential': 'Correo o contraseña incorrectos.',
     'auth/email-already-in-use': 'Ya existe una cuenta con ese correo. Inicia sesión.', 'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.', 'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos.',
     'auth/network-request-failed': 'Sin conexión. Revisa tu internet.', 'auth/invalid-phone-number': 'El número no es válido.', 'auth/invalid-verification-code': 'El código no es correcto.', 'auth/code-expired': 'El código venció. Pide uno nuevo.',
     'auth/billing-not-enabled': 'El inicio con teléfono no está activo en este momento. Usa Google o correo.', 'auth/operation-not-allowed': 'Este método de inicio de sesión no está activado.', 'auth/quota-exceeded': 'Se alcanzó el límite de SMS por hoy. Usa Google o correo.' };
-  return M[c] || 'No se pudo iniciar sesión. Intenta de nuevo.';
+  return (M[c] || 'No se pudo iniciar sesión. Intenta de nuevo.') + (c && c !== 'noconfig' ? ' (' + String(c).replace('auth/', '') + ')' : '');
 }
 function signedIn(u, provider, extra = {}) {
   D.set.auth = { uid: u.uid, provider, email: u.email || extra.email || '', phone: u.phoneNumber || '', name: u.displayName || extra.name || '', at: Date.now() };
