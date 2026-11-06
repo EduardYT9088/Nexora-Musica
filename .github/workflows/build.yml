@@ -647,9 +647,8 @@ jobs:
 
           /**
            * Motor yt-dlp de Música NX.
-           * Obtiene el enlace de audio de un video de YouTube con solo 2 intentos:
-           *  1) Método rápido (cliente android_vr, sin sesión).
-           *  2) Varios métodos de YouTube a la vez, con la sesión de YouTube si el usuario la guardó.
+           * Obtiene el enlace de audio de un video de YouTube con un solo método:
+           * varios clientes de YouTube a la vez, con la sesión de YouTube si el usuario la guardó.
            */
           object Yt {
               @Volatile var status = "prep"      // prep | updating | ready | error
@@ -660,7 +659,6 @@ jobs:
               private val timer = Executors.newSingleThreadScheduledExecutor()
               private val cache = ConcurrentHashMap<String, Pair<Long, JSONObject>>()
 
-              private const val FAST_ARGS = "youtube:player_client=android_vr;player_skip=webpage,configs;skip=dash,translated_subs"
               private const val MULTI_ARGS = "youtube:player_client=default,tv_simply,android_vr,mweb,web_embedded;skip=dash,translated_subs"
               private const val CACHE_MS = 4L * 3600 * 1000      // los enlaces de YouTube caducan en unas 6 h
               private const val UPDATE_MS = 12L * 3600 * 1000
@@ -725,31 +723,25 @@ jobs:
                   if (status != "ready") throw Exception("El motor aún se está preparando")
               }
 
-              /** Enlace de audio para un video: {url, ua, dur, title, attempt}. */
+              /** Enlace de audio para un video: {url, ua, dur, title}. */
               fun resolve(app: Context, vid: String): JSONObject {
                   cache[vid]?.let { if (System.currentTimeMillis() - it.first < CACHE_MS) return it.second }
                   awaitReady(90_000)
-                  var last: Exception? = null
-                  for (attempt in 0..1) {
-                      try {
-                          val j = dump(app, "https://www.youtube.com/watch?v=$vid", attempt)
-                          val a = bestAudio(j.optJSONArray("formats")) ?: throw Exception("Este video no tiene audio disponible")
-                          val out = JSONObject()
-                              .put("url", a.first).put("ua", a.second)
-                              .put("dur", j.optDouble("duration", 0.0))
-                              .put("title", j.optString("title"))
-                              .put("attempt", attempt + 1)
-                          cache[vid] = Pair(System.currentTimeMillis(), out)
-                          return out
-                      } catch (e: Exception) {
-                          last = e
-                          if (shouldStop(e.message ?: "")) break
-                      }
+                  try {
+                      val j = dump(app, "https://www.youtube.com/watch?v=$vid")
+                      val a = bestAudio(j.optJSONArray("formats")) ?: throw Exception("Este video no tiene audio disponible")
+                      val out = JSONObject()
+                          .put("url", a.first).put("ua", a.second)
+                          .put("dur", j.optDouble("duration", 0.0))
+                          .put("title", j.optString("title"))
+                      cache[vid] = Pair(System.currentTimeMillis(), out)
+                      return out
+                  } catch (e: Exception) {
+                      throw Exception(clean(e.message))
                   }
-                  throw Exception(clean(last?.message))
               }
 
-              private fun dump(app: Context, url: String, attempt: Int): JSONObject {
+              private fun dump(app: Context, url: String): JSONObject {
                   val r = YoutubeDLRequest(url)
                   r.addOption("--no-playlist")
                   r.addOption("--dump-json")
@@ -757,13 +749,9 @@ jobs:
                   r.addOption("--no-warnings")
                   r.addOption("--socket-timeout", "15")
                   r.addOption("--extractor-retries", "1")
-                  if (attempt == 0) {
-                      r.addOption("--extractor-args", FAST_ARGS)
-                  } else {
-                      r.addOption("--extractor-args", MULTI_ARGS)
-                      if (logged(app)) r.addOption("--cookies", cookies(app).absolutePath)
-                  }
-                  val res = run(r, "r" + attempt + "_" + System.nanoTime(), if (attempt == 0) 25L else 45L)
+                  r.addOption("--extractor-args", MULTI_ARGS)
+                  if (logged(app)) r.addOption("--cookies", cookies(app).absolutePath)
+                  val res = run(r, "r_" + System.nanoTime(), 45L)
                   return lastJson(res)
               }
 
@@ -839,11 +827,6 @@ jobs:
                   return Pair(b.optString("url"), ua)
               }
 
-              private fun shouldStop(err: String): Boolean {
-                  val e = err.lowercase()
-                  return e.contains("private video") || e.contains("video unavailable") || e.contains("has been removed") ||
-                      e.contains("members-only") || e.contains("confirm your age") || e.contains("not available in your country")
-              }
 
               private fun clean(msg: String?): String {
                   val m = (msg ?: "").lowercase()
@@ -1341,7 +1324,7 @@ jobs:
 
           /**
            * Inicio de sesión en YouTube (opcional). La sesión se guarda solo en el teléfono,
-           * en un archivo cookies.txt privado de la app, y se usa en el 2.º intento del motor.
+           * en un archivo cookies.txt privado de la app, y la usa el motor al obtener las canciones.
            */
           class LoginActivity : Activity() {
               private lateinit var web: WebView
