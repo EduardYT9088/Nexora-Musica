@@ -132,6 +132,8 @@ jobs:
               // Motor rápido (Java puro): el audio de una canción en 1-2 s
               implementation("com.github.TeamNewPipe:NewPipeExtractor:e8f89145a830b4d6cae32412007f24ea8b36c73a")
               coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
+              // Inicio de sesión con Google (token para Firebase)
+              implementation("com.google.android.gms:play-services-auth:21.2.0")
           }
           APPEOF
           cat > app/proguard-rules.pro <<'APPEOF'
@@ -225,6 +227,8 @@ jobs:
           import android.webkit.WebViewClient
           import android.widget.FrameLayout
           import android.widget.Toast
+          import com.google.android.gms.auth.api.identity.GetSignInIntentRequest
+          import com.google.android.gms.auth.api.identity.Identity
           import org.json.JSONArray
           import org.json.JSONObject
           import java.net.HttpURLConnection
@@ -246,6 +250,7 @@ jobs:
                   const val START_URL = "https://$HOST/assets/index.html"
                   const val REQ_FILE = 41
                   const val REQ_NOTIF = 46
+                  const val REQ_GOOGLE = 47
                   const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                   // Servidores a los que index.html puede pedir datos por el puente (catálogo y letras)
                   val ALLOWED_HOSTS = setOf("api.deezer.com", "lrclib.net", "github.com")
@@ -345,6 +350,39 @@ jobs:
                           collectVideos(node.opt(k), out)
                           if (out.length() >= 10) return
                       }
+                  }
+              }
+
+              // ---------- Inicio de sesión con Google (token para Firebase) ----------
+              private fun googleFail(msg: String?) {
+                  emit(JSONObject().put("type", "google").put("ok", false).put("msg", msg ?: "error"))
+              }
+
+              private fun googleStart(clientId: String) {
+                  if (clientId.isBlank()) { googleFail("noconfig"); return }
+                  try {
+                      val req = GetSignInIntentRequest.builder().setServerClientId(clientId).build()
+                      Identity.getSignInClient(this).getSignInIntent(req)
+                          .addOnSuccessListener { pi ->
+                              runCatching { startIntentSenderForResult(pi.intentSender, REQ_GOOGLE, null, 0, 0, 0) }
+                                  .onFailure { googleFail(it.message) }
+                          }
+                          .addOnFailureListener { e -> googleFail(e.message) }
+                  } catch (e: Exception) {
+                      googleFail(e.message)
+                  }
+              }
+
+              private fun googleResult(resultCode: Int, data: Intent?) {
+                  try {
+                      val c = Identity.getSignInClient(this).getSignInCredentialFromIntent(data)
+                      val tok = c.googleIdToken
+                      if (tok == null) { googleFail("notoken"); return }
+                      emit(JSONObject().put("type", "google").put("ok", true).put("token", tok)
+                          .put("name", c.displayName ?: "").put("email", c.id)
+                          .put("photo", c.profilePictureUri?.toString() ?: ""))
+                  } catch (e: Exception) {
+                      googleFail(if (resultCode == RESULT_OK) e.message else "cancel")
                   }
               }
 
@@ -587,6 +625,10 @@ jobs:
                       }
                   }
 
+                  // ---------- Cuenta ----------
+                  @JavascriptInterface fun googleSignIn(clientId: String) = runOnUiThread { googleStart(clientId) }
+                  @JavascriptInterface fun googleSignOut() = runOnUiThread { runCatching { Identity.getSignInClient(this@MainActivity).signOut() } }
+
                   // ---------- Descargas sin internet ----------
                   @JavascriptInterface fun dlStart(json: String) {
                       val o = try { JSONObject(json) } catch (e: Exception) { return }
@@ -639,6 +681,7 @@ jobs:
               override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
                   @Suppress("DEPRECATION")
                   super.onActivityResult(requestCode, resultCode, data)
+                  if (requestCode == REQ_GOOGLE) { googleResult(resultCode, data); return }
                   if (requestCode == REQ_FILE) {
                       fileCallback?.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode, data))
                       fileCallback = null
