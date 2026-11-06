@@ -385,6 +385,14 @@ jobs:
                       override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
                           val url = request.url
                           if (url.host != HOST) return null
+                          // Portadas de las canciones descargadas (funcionan sin internet)
+                          if (url.path?.startsWith("/offline/") == true) {
+                              val name = url.lastPathSegment ?: ""
+                              val f = java.io.File(Offline.dir(this@MainActivity), name)
+                              return if (Regex("^[0-9]{1,15}\\.jpg$").matches(name) && f.exists())
+                                  WebResourceResponse("image/jpeg", null, f.inputStream())
+                              else WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(), "".byteInputStream())
+                          }
                           val path = url.path?.removePrefix("/assets/")?.ifEmpty { "index.html" } ?: return null
                           return try {
                               WebResourceResponse(mime(path), "utf-8", assets.open(path)).apply {
@@ -578,6 +586,15 @@ jobs:
                           }
                       }
                   }
+
+                  // ---------- Descargas sin internet ----------
+                  @JavascriptInterface fun dlStart(json: String) {
+                      val o = try { JSONObject(json) } catch (e: Exception) { return }
+                      Offline.start(this@MainActivity, o)
+                  }
+                  @JavascriptInterface fun dlDelete(id: String) = Offline.delete(this@MainActivity, id)
+                  @JavascriptInterface fun dlList(): String = Offline.list(this@MainActivity)
+                  @JavascriptInterface fun dlPath(id: String): String = Offline.path(this@MainActivity, id)
 
                   // ---------- Actualización dentro de la app ----------
                   @JavascriptInterface fun updStart(url: String) = runOnUiThread { Updater.start(this@MainActivity, url) }
@@ -1597,6 +1614,134 @@ jobs:
                       PackageInstaller.STATUS_FAILURE_ABORTED -> Updater.result("cancel")
                       else -> Updater.result("failed")
                   }
+              }
+          }
+          APPEOF
+          cat > app/src/main/java/com/nexora/musicanx/Offline.kt <<'APPEOF'
+          package com.nexora.musicanx
+
+          import android.content.Context
+          import org.json.JSONArray
+          import org.json.JSONObject
+          import java.io.File
+          import java.io.FileOutputStream
+          import java.net.HttpURLConnection
+          import java.net.URL
+          import java.util.concurrent.ConcurrentHashMap
+          import java.util.concurrent.Executors
+
+          /**
+           * Descargas para escuchar sin internet. Los archivos quedan en la memoria privada de la app
+           * (files/offline/<id>.m4a y <id>.jpg) y solo Música NX los puede reproducir.
+           */
+          object Offline {
+              private val running = ConcurrentHashMap<String, Boolean>()
+              private val pool = Executors.newFixedThreadPool(2)
+              private val ID = Regex("^[0-9]{1,15}$")
+              private const val CHUNK = 2L * 1024 * 1024        // por partes: YouTube no frena las descargas así
+
+              fun dir(c: Context) = File(c.filesDir, "offline").apply { mkdirs() }
+              fun audio(c: Context, id: String) = File(dir(c), "$id.m4a")
+              fun cover(c: Context, id: String) = File(dir(c), "$id.jpg")
+
+              private fun emit(id: String, state: String, done: Long = 0, total: Long = 0, msg: String = "") {
+                  MainActivity.emit(JSONObject().put("type", "dl").put("id", id).put("state", state)
+                      .put("done", done).put("total", total).put("msg", msg))
+              }
+
+              fun start(c: Context, o: JSONObject) {
+                  val id = o.optString("id")
+                  val url = o.optString("url")
+                  if (!ID.matches(id) || !url.startsWith("https://")) { emit(id, "error", msg = "Datos no válidos"); return }
+                  if (running.putIfAbsent(id, true) != null) return
+                  val app = c.applicationContext
+                  pool.execute {
+                      val tmp = File(dir(app), "$id.part")
+                      try {
+                          downloadRanged(url, o.optString("ua"), tmp) { done, total -> emit(id, "progress", done, total) }
+                          val dst = audio(app, id)
+                          if (dst.exists()) dst.delete()
+                          if (!tmp.renameTo(dst)) throw Exception("No se pudo guardar")
+                          val cov = o.optString("cover")
+                          if (cov.startsWith("https://")) runCatching { downloadSimple(cov, cover(app, id)) }
+                          emit(id, "done", dst.length(), dst.length())
+                      } catch (e: Exception) {
+                          tmp.delete()
+                          emit(id, "error", msg = "No se pudo descargar. Revisa tu conexión.")
+                      } finally {
+                          running.remove(id)
+                      }
+                  }
+              }
+
+              private fun downloadRanged(url: String, ua: String, out: File, progress: (Long, Long) -> Unit) {
+                  var done = 0L
+                  var total = -1L
+                  var last = 0L
+                  FileOutputStream(out).use { fo ->
+                      while (total < 0 || done < total) {
+                          val end = done + CHUNK - 1
+                          val c = URL(url).openConnection() as HttpURLConnection
+                          c.connectTimeout = 15000
+                          c.readTimeout = 30000
+                          if (ua.isNotEmpty()) c.setRequestProperty("User-Agent", ua)
+                          c.setRequestProperty("Range", "bytes=$done-$end")
+                          try {
+                              val code = c.responseCode
+                              if (code != 206 && code != 200) throw Exception("HTTP $code")
+                              if (code == 200) total = c.contentLengthLong
+                              else {
+                                  val cr = c.getHeaderField("Content-Range") ?: ""
+                                  val t = cr.substringAfter('/', "").trim().toLongOrNull()
+                                  if (t != null && t > 0) total = t
+                              }
+                              var got = 0L
+                              c.inputStream.use { input ->
+                                  val buf = ByteArray(64 * 1024)
+                                  while (true) {
+                                      val n = input.read(buf)
+                                      if (n < 0) break
+                                      fo.write(buf, 0, n)
+                                      done += n; got += n
+                                      val now = System.currentTimeMillis()
+                                      if (now - last > 300) { last = now; progress(done, total) }
+                                  }
+                              }
+                              if (code == 200) { total = done; break }
+                              if (got == 0L) break
+                              if (total < 0 && got < CHUNK) { total = done; break }
+                          } finally {
+                              c.disconnect()
+                          }
+                      }
+                  }
+                  if (done <= 0) throw Exception("Archivo vacío")
+                  progress(done, done)
+              }
+
+              private fun downloadSimple(url: String, out: File) {
+                  val c = URL(url).openConnection() as HttpURLConnection
+                  c.connectTimeout = 10000; c.readTimeout = 15000
+                  try { c.inputStream.use { i -> FileOutputStream(out).use { o -> i.copyTo(o) } } } finally { c.disconnect() }
+              }
+
+              fun delete(c: Context, id: String) {
+                  if (!ID.matches(id)) return
+                  audio(c, id).delete(); cover(c, id).delete()
+              }
+
+              fun list(c: Context): String {
+                  val a = JSONArray()
+                  dir(c).listFiles()?.forEach { f ->
+                      if (f.name.endsWith(".m4a")) a.put(JSONObject().put("id", f.name.removeSuffix(".m4a")).put("size", f.length()))
+                  }
+                  return a.toString()
+              }
+
+              fun path(c: Context, id: String): String {
+                  if (!ID.matches(id)) return ""
+                  val f = audio(c, id)
+                  return if (f.exists() && f.length() > 0) "file://" + f.absolutePath else ""
               }
           }
           APPEOF
