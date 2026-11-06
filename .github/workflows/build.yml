@@ -568,6 +568,17 @@ jobs:
                       }
                   }
 
+                  @JavascriptInterface fun resolveFast(id: String, vid: String) {
+                      io.execute {
+                          try {
+                              if (!VIDEO_ID.matches(vid)) throw Exception("Video no válido")
+                              reply(id, true, Yt.resolveFast(vid).toString())
+                          } catch (e: Throwable) {
+                              reply(id, false, "Motor rápido sin respuesta")
+                          }
+                      }
+                  }
+
                   // ---------- Actualización dentro de la app ----------
                   @JavascriptInterface fun updStart(url: String) = runOnUiThread { Updater.start(this@MainActivity, url) }
                   @JavascriptInterface fun updCanInstall(): Boolean = Updater.canInstall(this@MainActivity)
@@ -604,6 +615,7 @@ jobs:
                   @JavascriptInterface fun audioResume() { main.post { AudioService.resume() } }
                   @JavascriptInterface fun audioSeek(ms: Double) { main.post { AudioService.seek(ms.toLong()) } }
                   @JavascriptInterface fun audioStop() { main.post { AudioService.stop() } }
+                  @JavascriptInterface fun audioHalt() { main.post { AudioService.halt() } }
                   @JavascriptInterface fun audioState(): String = AudioService.state().toString()
               }
 
@@ -744,6 +756,15 @@ jobs:
                   }
                   if (status == "error") throw Exception("El motor no se pudo iniciar")
                   if (status != "ready") throw Exception("El motor aún se está preparando")
+              }
+
+              /** Solo el motor rápido (1-2 s). Lanza error si no lo consigue. */
+              fun resolveFast(vid: String): JSONObject {
+                  cache[vid]?.let { if (System.currentTimeMillis() - it.first < CACHE_MS) return it.second }
+                  val o = Np.audio(vid)
+                  if (o.optString("url").isEmpty()) throw Exception("Sin audio")
+                  cache[vid] = Pair(System.currentTimeMillis(), o)
+                  return o
               }
 
               /** Enlace de audio para un video: {url, ua, dur, title}. */
@@ -983,6 +1004,8 @@ jobs:
                   fun resume() { inst?.resumeP() }
                   fun seek(ms: Long) { inst?.seekP(ms) }
                   fun stop() { val s = inst; if (s != null) s.close() else releaseNext() }
+                  /** Corta en seco la canción actual (aunque esté cargando) sin cerrar la notificación. */
+                  fun halt() { inst?.haltP() }
                   fun state(): JSONObject = inst?.snapshot() ?: JSONObject().put("state", "idle")
               }
 
@@ -1136,6 +1159,13 @@ jobs:
                   requestFocus()
                   try { p.start(); st = "playing" } catch (e: Exception) { st = "error" }
                   updateSession(); showNotification(); emit(st)
+              }
+
+              fun haltP() {
+                  releaseMain()
+                  st = "loading"
+                  startPos = 0
+                  updateSession()
               }
 
               fun seekP(ms: Long) {
