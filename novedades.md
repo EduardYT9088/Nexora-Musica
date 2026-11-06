@@ -1,5 +1,6 @@
-Versión: 1.3.0
-- Las canciones cargan al instante: nuevo motor rápido que tarda 1-2 segundos (yt-dlp queda de respaldo)
-- Actualizaciones dentro de la app: pantalla con el logo animado, porcentaje, MB descargados, velocidad y tiempo restante
-- Fondo del perfil: 8 diseños, tu foto difuminada o una imagen de tu galería
-- El reproductor ya no muestra "preparando segundo plano"
+Versión: 1.4.0
+- La música pasa sola a la siguiente canción al terminar
+- Reproducción automática: al acabar la lista siguen canciones parecidas (se puede apagar en Perfil)
+- Cambiar de canción es instantáneo: las 2 siguientes ya quedan preparadas
+- Al cambiar de canción, la anterior se detiene al momento (ya no suenan dos a la vez)
+- El botón de repetir muestra claro cuando está en "repetir esta canción"

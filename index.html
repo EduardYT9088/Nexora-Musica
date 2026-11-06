@@ -281,6 +281,13 @@ body.isplaying #mini .disc{animation-play-state:running}
 .ringbtn svg.rg .bgc{stroke:rgba(255,255,255,.18)}
 .ringbtn svg.rg .fgc{stroke:var(--acc);stroke-linecap:round;stroke-dasharray:125.66;stroke-dashoffset:125.66;transition:stroke-dashoffset .5s linear}
 .ringbtn .ic{width:20px;height:20px}
+body.isloading .ringbtn svg.rg{animation:spinr 1s linear infinite}
+body.isloading .ringbtn svg.rg .fgc{stroke-dashoffset:95!important;transition:none}
+@keyframes spinr{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+.sw-t{width:46px;height:28px;border-radius:99px;background:rgba(255,255,255,.18);position:relative;flex:none;transition:background .2s}
+.sw-t::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s}
+.sw-t.on{background:var(--grad)}
+.sw-t.on::after{left:21px}
 
 /* ---------- Navegación flotante ---------- */
 #nav{position:fixed;left:12px;right:12px;bottom:var(--navb);z-index:21;height:var(--nav);border-radius:24px;display:flex;align-items:center;justify-content:space-around;padding:0 8px;
@@ -343,7 +350,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .ctrl .ib.on::after{content:"";position:absolute;width:4px;height:4px;border-radius:50%;background:var(--acc);bottom:5px;left:50%;transform:translateX(-50%)}
 .pp{width:70px!important;height:70px!important;border-radius:24px!important;background:var(--grad);color:#fff!important;box-shadow:0 14px 30px -10px color-mix(in srgb,var(--acc) 85%,transparent)}
 .pp .ic{width:30px!important;height:30px!important}
-.r1{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:8.5px;font-weight:900}
+.r1{position:absolute;top:6px;right:5px;width:16px;height:16px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;line-height:1}
 .tools{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}
 .tool{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;padding:8px 0;border-radius:16px;color:rgba(255,255,255,.75);font-size:11.5px;font-weight:600}
 .tool .ic{width:22px;height:22px}
@@ -818,7 +825,7 @@ const bgi = url => url ? `<div class="bgi" style="background-image:url('${esc(ur
    REPRODUCTOR
    ========================================================= */
 const NAT = !!(A && A.resolve && A.audioPlay && A.audioState);   // motor NX (yt-dlp) disponible en la app
-const P = { list: [], q: [], i: -1, cur: null, ctx: null, shuffle: S.get('shuf', false), repeat: S.get('rep', 0), playing: false, loading: false,
+const P = { list: [], q: [], i: -1, cur: null, ctx: null, shuffle: S.get('shuf', false), repeat: S.get('rep', 0) === 1 ? 1 : 0, playing: false, loading: false,
   src: '', yt: null, cands: [], ci: 0, searched: false, tok: 0, pos: 0, dur: 0, video: false, sleepAt: 0, sleepEnd: false, seeking: false, lyr: null, lyrIdx: -1,
   nat: null, vid: '', handoff: false, resolving: false, userPaused: false, pref: null, ptok: 0, botToast: false,
   eng: { status: '', version: '', logged: false } };
@@ -906,12 +913,61 @@ function natInfo(t, r, pos) {
   return JSON.stringify({ url: r.url, ua: r.ua || '', id: String(t.id), title: t.title, artist: t.artist, album: t.album,
     art: t.big || t.cover || '', pos: Math.max(0, Math.round((pos || 0) * 1000)) });
 }
+/* Canciones ya preparadas: suenan al instante (id → {vid, nat, at}) */
+const READY = new Map();
+function readyGet(t) { const x = t && READY.get(t.id); if (x && Date.now() - x.at < 3 * 3600e3) return x; if (t) READY.delete(t.id); return null; }
+function readySet(t, vid, nat) { READY.delete(t.id); READY.set(t.id, { vid, nat, at: Date.now() }); if (READY.size > 80) READY.delete(READY.keys().next().value); }
+/** Audio de la canción: primero el motor rápido (1-2 s) con 2 videos; si falla, yt-dlp de respaldo. */
 async function resolveTrack(t, ids) {
   for (const vid of ids.slice(0, 2)) {
-    try { const r = JSON.parse(await callTo(150000, 'resolve', vid)); if (r && r.url) return { vid, r }; }
+    try { const r = JSON.parse(await callTo(12000, A.resolveFast ? 'resolveFast' : 'resolve', vid)); if (r && r.url) return { vid, r }; }
     catch (e) { P.lastErr = e.message || ''; }
   }
+  if (!A.resolveFast || !ids[0]) return null;
+  try { const r = JSON.parse(await callTo(150000, 'resolve', ids[0])); if (r && r.url) return { vid: ids[0], r }; }
+  catch (e) { P.lastErr = e.message || ''; }
   return null;
+}
+/** Busca y prepara una canción en segundo plano (para la siguiente de la cola). */
+const preparing = new Map();
+function prepare(t) {
+  const hit = readyGet(t); if (hit) return Promise.resolve(hit);
+  if (preparing.has(t.id)) return preparing.get(t.id);
+  const job = (async () => {
+    let ids = await candidates(t);
+    let res = ids.length ? await resolveTrack(t, ids) : null;
+    if (!res && D.yt[t.id] && A.ytSearch) {          // el video guardado ya no sirve: busca otro
+      delete D.yt[t.id];
+      try { ids = (await ytFind(t)).filter(x => !ids.includes(x)); if (ids.length) res = await resolveTrack(t, ids); } catch (e) {}
+    }
+    if (!res) return null;
+    if (D.yt[t.id] !== res.vid) { D.yt[t.id] = res.vid; trimYt(); save('yt'); }
+    readySet(t, res.vid, res.r);
+    return READY.get(t.id);
+  })().finally(() => preparing.delete(t.id));
+  preparing.set(t.id, job);
+  return job;
+}
+/* Reproducción automática: al terminar la lista sigue con canciones parecidas */
+const autoplayOn = () => D.set.autoplay !== false;
+let extending = null;
+function extendQueue() {
+  if (extending) return extending;
+  const base = P.q[P.q.length - 1] || P.cur;
+  extending = (async () => {
+    try {
+      const have = new Set(P.q.map(x => x.id));
+      let add = [];
+      if (base && base.artistId) { const j = await dz(`/artist/${base.artistId}/radio?limit=40`); add = (j.data || []).map(T).filter(x => !have.has(x.id)); }
+      if (add.length < 5) { const j = await dz('/chart/0/tracks?limit=50'); add = add.concat((j.data || []).map(T).filter(x => !have.has(x.id) && !add.some(y => y.id === x.id))); }
+      add = shuffleArr(add).slice(0, 15);
+      if (!add.length) return false;
+      P.q.push(...add); P.list.push(...add);
+      if (ptab === 'q') renderQueueTab();
+      return true;
+    } catch (e) { return false; } finally { extending = null; }
+  })();
+  return extending;
 }
 function botHint() {
   if (P.botToast || P.eng.logged || !/verificaci/i.test(P.lastErr || '')) return;
@@ -935,6 +991,7 @@ function handoffToNative(force) {
 }
 async function natFailed() {
   const t = P.cur, tok = P.tok, pos = P.pos;
+  READY.delete(t.id);
   P.nat = null; P.src = ''; P.handoff = false;
   if (P.vid && await ytReady()) {
     if (tok !== P.tok) return;
@@ -949,19 +1006,18 @@ async function prefetchNext() {
   if (!NAT || !P.cur) return;
   const ptok = ++P.ptok;
   if (P.repeat === 2 || P.sleepEnd) { A.audioSetNext(''); return; }
+  if (P.i + 1 >= P.q.length && P.repeat !== 1 && autoplayOn()) await extendQueue();
+  if (ptok !== P.ptok) return;
   let k = P.i + 1;
   if (k >= P.q.length) { if (P.repeat === 1 && P.q.length > 1) k = 0; else { A.audioSetNext(''); return; } }
   const t = P.q[k];
   if (!t) return;
-  if (P.pref && P.pref.id === t.id && P.pref.nat) { A.audioSetNext(natInfo(t, P.pref.nat, 0)); return; }
   try {
-    const ids = await candidates(t);
-    if (ptok !== P.ptok || !ids.length) return;
-    const res = await resolveTrack(t, ids);
-    if (ptok !== P.ptok || !res) return;
-    D.yt[t.id] = res.vid; trimYt(); save('yt');
-    P.pref = { id: t.id, vid: res.vid, nat: res.r };
-    A.audioSetNext(natInfo(t, res.r, 0));
+    const x = await prepare(t);
+    if (ptok !== P.ptok) return;
+    A.audioSetNext(x && x.nat ? natInfo(t, x.nat, 0) : '');
+    const t2 = P.q[k + 1];                       // deja lista también la siguiente
+    if (t2 && !readyGet(t2)) prepare(t2).catch(() => {});
   } catch (e) {}
 }
 window.nxEvent = s => {
@@ -980,8 +1036,8 @@ function onNative(e) {
   if (e.state === 'advanced') {          // el motor pasó solo a la canción precargada
     let idx = (P.i + 1 < P.q.length && String(P.q[P.i + 1].id) === String(e.id)) ? P.i + 1 : P.q.findIndex(x => String(x.id) === String(e.id));
     if (idx < 0) return;
-    const t = P.q[idx], pf = P.pref && P.pref.id === t.id ? P.pref : null;
-    P.pref = null; P.i = idx; P.tok++;
+    const t = P.q[idx], pf = readyGet(t);
+    P.i = idx; P.tok++;
     P.cur = t; P.pos = 0; P.dur = t.dur || 0; P.src = 'nat'; P.handoff = false; P.userPaused = false;
     P.nat = pf ? pf.nat : null; P.vid = pf ? pf.vid : (D.yt[t.id] || ''); P.cands = P.vid ? [P.vid] : [];
     setLoading(true); updateNowUI(); pushHistory(t); loadLyrics(t, P.tok); markRows(); updateSrc(); prefetchNext();
@@ -1000,10 +1056,11 @@ function onNative(e) {
   else if (e.state === 'error') natFailed();
 }
 
+/** Calla todo lo que suena (incluida una canción que aún esté cargando). */
 function stopEngines() {
   try { P.yt && P.yt.stopVideo && P.yt.stopVideo(); } catch (e) {}
   try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
-  if (NAT && P.src === 'nat') { try { A.audioPause(); } catch (e) {} }
+  if (NAT) { try { A.audioHalt ? A.audioHalt() : A.audioPause(); } catch (e) {} }
 }
 function playPreview(t) {
   if (!t.preview) { P.src = ''; setLoading(false); setPlaying(false); toast('Esta canción no está disponible ahora'); updateSrc(); return; }
@@ -1033,43 +1090,70 @@ async function loadCur() {
   P.cur = t; P.pos = 0; P.dur = t.dur || 0; P.cands = []; P.ci = 0; P.searched = false;
   P.nat = null; P.vid = ''; P.handoff = false; P.resolving = false; P.userPaused = false; P.src = ''; P.ytDead = false;
   setPlaying(false); setLoading(true); updateNowUI(); pushHistory(t); loadLyrics(t, tok); markRows(); updateSrc();
-  // 1) Ya estaba preparada: suena al instante con el motor NX
-  const pf = P.pref && P.pref.id === t.id ? P.pref : null;
-  P.pref = null;
-  if (NAT && pf && pf.nat) {
-    P.vid = pf.vid; P.cands = [pf.vid]; P.nat = pf.nat; P.src = 'nat';
-    A.audioPlay(natInfo(t, pf.nat, 0)); updateSrc(); prefetchNext();
+  if (NAT) {
+    // 1) Ya estaba preparada: suena al instante con el motor NX
+    const hit = readyGet(t);
+    if (hit && hit.nat) {
+      P.vid = hit.vid; P.cands = [hit.vid]; P.nat = hit.nat; P.src = 'nat';
+      A.audioPlay(natInfo(t, hit.nat, 0)); updateSrc(); prefetchNext();
+      return;
+    }
+    // Se estaba preparando en segundo plano (la siguiente de la cola): espera ese mismo trabajo
+    if (preparing.has(t.id)) {
+      P.resolving = true; updateSrc();
+      const x = await preparing.get(t.id).catch(() => null);
+      if (tok !== P.tok) return;
+      P.resolving = false;
+      if (x && x.nat) { P.vid = x.vid; P.cands = [x.vid]; P.nat = x.nat; P.src = 'nat'; A.audioPlay(natInfo(t, x.nat, 0)); updateSrc(); prefetchNext(); return; }
+    }
+    // 2) La busca y la prepara con el motor rápido (1-2 s)
+    P.resolving = true; updateSrc();
+    let ids = D.yt[t.id] ? [D.yt[t.id]] : [];
+    if (!ids.length && A.ytSearch) { P.searched = true; try { ids = await ytFind(t); } catch (e) { ids = []; } }
+    if (tok !== P.tok) return;
+    if (!ids.length) { P.resolving = false; playPreview(t); return; }
+    P.cands = ids; P.vid = ids[0];
+    // Si tarda más de 3,5 s, suena mientras tanto con el reproductor de YouTube
+    const interim = setTimeout(() => {
+      if (tok !== P.tok || P.src || !P.resolving) return;
+      ytReady().then(ok => {
+        if (!ok || tok !== P.tok || P.src || !P.resolving || P.ytDead) return;
+        P.src = 'yt'; P.ci = 0; P.yt.loadVideoById(P.cands[0]); updateSrc();
+      });
+    }, 3500);
+    let res = await resolveTrack(t, ids);
+    if (!res && !P.searched && A.ytSearch && tok === P.tok) {     // el video guardado ya no sirve: busca otro
+      P.searched = true;
+      try { const more = (await ytFind(t)).filter(x => !ids.includes(x)); if (more.length && tok === P.tok) { P.cands = more; res = await resolveTrack(t, more); } } catch (e) {}
+    }
+    clearTimeout(interim);
+    if (tok !== P.tok) return;
+    P.resolving = false;
+    if (res) {
+      if (D.yt[t.id] !== res.vid) { D.yt[t.id] = res.vid; trimYt(); save('yt'); }
+      readySet(t, res.vid, res.r);
+      P.nat = res.r; P.vid = res.vid;
+      handoffToNative(!P.src || P.src === 'pv');
+      prefetchNext();
+    } else {
+      botHint();
+      if (!P.src) {
+        try { A.audioStop(); } catch (e) {}
+        if (!P.ytDead && await ytReady() && tok === P.tok && !P.src) { P.src = 'yt'; P.ci = 0; P.yt.loadVideoById(P.cands[0]); }
+        else if (tok === P.tok && !P.src) playPreview(t);
+      }
+    }
+    updateSrc();
     return;
   }
+  // Sin motor NX (navegador): reproductor de YouTube o vista previa
   let ids = D.yt[t.id] ? [D.yt[t.id]] : [];
   if (!ids.length && A && A.ytSearch) { P.searched = true; try { ids = await ytFind(t); } catch (e) { ids = []; } }
   if (tok !== P.tok) return;
   if (!ids.length) { playPreview(t); return; }
   P.cands = ids; P.ci = 0; P.vid = ids[0];
-  // 2) Empieza al instante con YouTube…
-  ytReady().then(ok => {
-    if (!ok || tok !== P.tok || P.src === 'nat' || P.src === 'yt' || P.ytDead) return;
-    P.src = 'yt'; P.yt.loadVideoById(P.cands[P.ci] || ids[0]); updateSrc();
-  });
-  if (!NAT) {
-    if (!(await ytReady()) && tok === P.tok && !P.src) playPreview(t);
-    return;
-  }
-  // 3) …y pasa al motor NX en cuanto tiene el audio (así sigue sonando con la pantalla apagada)
-  P.resolving = true; updateSrc();
-  const res = await resolveTrack(t, ids);
-  if (tok !== P.tok) return;
-  P.resolving = false;
-  if (res) {
-    P.nat = res.r; P.vid = res.vid;
-    if (D.yt[t.id] !== res.vid) { D.yt[t.id] = res.vid; trimYt(); save('yt'); }
-    handoffToNative(!P.src);
-    prefetchNext();
-  } else {
-    botHint();
-    if (!P.src && (P.ytDead || !(await ytReady())) && tok === P.tok && !P.src) playPreview(t);
-  }
-  updateSrc();
+  if (await ytReady() && tok === P.tok) { P.src = 'yt'; P.yt.loadVideoById(ids[0]); updateSrc(); }
+  else if (tok === P.tok && !P.src) playPreview(t);
 }
 function toggle() {
   if (!P.cur) return;
@@ -1099,9 +1183,14 @@ function seekTo(s) {
   else if (P.src === 'pv') audio.currentTime = s;
   P.pos = s;
 }
-function next(auto) {
+async function next(auto) {
   if (!P.q.length) return;
   if (auto && P.repeat === 2) { seekTo(0); resumeAll(); return; }
+  if (P.i >= P.q.length - 1 && P.repeat !== 1 && autoplayOn()) {
+    if (!P.autoToast) { P.autoToast = true; toast('Reproducción automática: siguen canciones parecidas'); }
+    setLoading(true);
+    await extendQueue();
+  }
   if (P.i < P.q.length - 1) { P.i++; loadCur(); }
   else if (P.repeat === 1 || !auto) { P.i = 0; loadCur(); }
   else { setPlaying(false); }
@@ -1119,7 +1208,7 @@ function setShuffle(v) {
   }
   updateModes(); toast(v ? 'Aleatorio activado' : 'Aleatorio desactivado'); prefetchNext();
 }
-function cycleRepeat() { P.repeat = (P.repeat + 1) % 3; S.set('rep', P.repeat); updateModes(); toast(['Repetir desactivado', 'Repetir todo', 'Repetir esta canción'][P.repeat]); prefetchNext(); }
+function cycleRepeat() { P.repeat = (P.repeat + 1) % 3; S.set('rep', P.repeat); updateModes(); toast(['Repetir desactivado', 'Repetir toda la lista', 'Repetir esta canción (no pasa a la siguiente)'][P.repeat]); prefetchNext(); }
 
 /* ---------- Video ---------- */
 async function videoOn() {
@@ -1190,7 +1279,7 @@ function setPlaying(v) {
   document.body.classList.toggle('isplaying', v);
   $('#plArt').classList.toggle('on', v);
 }
-function setLoading(v) { P.loading = v; $('#plLoad').classList.toggle('on', v); }
+function setLoading(v) { P.loading = v; $('#plLoad').classList.toggle('on', v); document.body.classList.toggle('isloading', v); }
 function updateModes() {
   $('#plShuf').classList.toggle('on', P.shuffle);
   $('#plRep').classList.toggle('on', P.repeat > 0);
@@ -1893,6 +1982,7 @@ function renderMe() {
     </div>
     <div class="menu">
       <button class="mi" data-m="hist"><span class="ico" style="background:#6366F1">${ic('clock')}</span><div class="meta"><div class="t1">Escuchado recientemente</div><small>${D.hist.length} canciones</small></div>${ic('right')}</button>
+      <button class="mi" data-m="autoplay"><span class="ico" style="background:#22C55E">${ic('spark')}</span><div class="meta"><div class="t1">Reproducción automática</div><small>Al terminar la lista, siguen canciones parecidas</small></div><span class="sw-t${autoplayOn() ? ' on' : ''}" id="apSw"></span></button>
       <button class="mi" data-m="timer"><span class="ico" style="background:#0EA5E9">${ic('timer')}</span><div class="meta"><div class="t1">Temporizador para dormir</div><small>${P.sleepAt ? 'Activo' : P.sleepEnd ? 'Al final de la canción' : 'Desactivado'}</small></div>${ic('right')}</button>
       <button class="mi" data-m="clear"><span class="ico" style="background:#F43F5E">${ic('trash')}</span><div class="meta"><div class="t1">Borrar historial</div><small>Recientes, búsquedas y estadísticas</small></div>${ic('right')}</button>
     </div>
@@ -1954,6 +2044,7 @@ $('#meBody').onclick = e => {
   else if (k === 'priv') openPrivacy();
   else if (k === 'about') aboutSheet();
   else if (k === 'engine') engineSheet();
+  else if (k === 'autoplay') { D.set.autoplay = !autoplayOn(); save('set'); $('#apSw').classList.toggle('on', autoplayOn()); toast(autoplayOn() ? 'Reproducción automática activada' : 'Reproducción automática desactivada'); prefetchNext(); }
   else if (k === 'account') accountSheet();
   else if (k === 'upd') checkUpdate(true);
   else if (k === 'clear') actionSheet('<div class="sh-title">¿Borrar tu historial?</div><p style="padding:0 18px 10px;color:var(--mut);font-size:14px">Se borran las canciones recientes, búsquedas y estadísticas. Tus me gusta y playlists se conservan.</p>', [
