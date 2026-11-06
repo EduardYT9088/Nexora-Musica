@@ -46,7 +46,7 @@ jobs:
           }
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
+              repositories { google(); mavenCentral(); maven { url = uri("https://jitpack.io") } }
           }
           rootProject.name = "App"
           include(":app")
@@ -115,6 +115,7 @@ jobs:
               }
 
               compileOptions {
+                  isCoreLibraryDesugaringEnabled = true
                   sourceCompatibility = JavaVersion.VERSION_17
                   targetCompatibility = JavaVersion.VERSION_17
               }
@@ -128,6 +129,9 @@ jobs:
           dependencies {
               // Motor yt-dlp para Android (incluye Python y QuickJS)
               implementation("io.github.junkfood02.youtubedl-android:library:0.18.1")
+              // Motor rápido (Java puro): el audio de una canción en 1-2 s
+              implementation("com.github.TeamNewPipe:NewPipeExtractor:e8f89145a830b4d6cae32412007f24ea8b36c73a")
+              coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
           }
           APPEOF
           cat > app/proguard-rules.pro <<'APPEOF'
@@ -148,6 +152,7 @@ jobs:
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
               <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
               <!-- Android TV: la app también funciona sin pantalla táctil -->
               <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
               <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -179,6 +184,10 @@ jobs:
                       android:name=".LoginActivity"
                       android:exported="false"
                       android:configChanges="orientation|screenSize|keyboardHidden" />
+
+                  <receiver
+                      android:name=".InstallResultReceiver"
+                      android:exported="false" />
 
                   <service
                       android:name=".AudioService"
@@ -239,7 +248,7 @@ jobs:
                   const val REQ_NOTIF = 46
                   const val DESKTOP_UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
                   // Servidores a los que index.html puede pedir datos por el puente (catálogo y letras)
-                  val ALLOWED_HOSTS = setOf("api.deezer.com", "lrclib.net")
+                  val ALLOWED_HOSTS = setOf("api.deezer.com", "lrclib.net", "github.com")
                   private val VIDEO_ID = Regex("^[A-Za-z0-9_-]{11}$")
                   private val main = Handler(Looper.getMainLooper())
 
@@ -455,6 +464,12 @@ jobs:
                   else -> "application/octet-stream"
               }
 
+              @Suppress("DEPRECATION")
+              private fun versionCode(): Long = try {
+                  val p = packageManager.getPackageInfo(packageName, 0)
+                  if (Build.VERSION.SDK_INT >= 28) p.longVersionCode else p.versionCode.toLong()
+              } catch (e: PackageManager.NameNotFoundException) { 0L }
+
               private fun versionName(): String = try {
                   packageManager.getPackageInfo(packageName, 0).versionName ?: "0"
               } catch (e: PackageManager.NameNotFoundException) { "0" }
@@ -468,6 +483,8 @@ jobs:
                       .put("package", packageName)
                       .put("sdk", Build.VERSION.SDK_INT)
                       .put("tv", packageManager.hasSystemFeature("android.software.leanback"))
+                      .put("code", versionCode())
+                      .put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "")
                       .toString()
 
                   @JavascriptInterface fun toast(msg: String) = runOnUiThread {
@@ -550,6 +567,11 @@ jobs:
                           }
                       }
                   }
+
+                  // ---------- Actualización dentro de la app ----------
+                  @JavascriptInterface fun updStart(url: String) = runOnUiThread { Updater.start(this@MainActivity, url) }
+                  @JavascriptInterface fun updCanInstall(): Boolean = Updater.canInstall(this@MainActivity)
+                  @JavascriptInterface fun updPerm() = runOnUiThread { Updater.openPermission(this@MainActivity) }
 
                   // ---------- Cuenta de YouTube (opcional) ----------
                   @JavascriptInterface fun login() = runOnUiThread {
@@ -670,6 +692,7 @@ jobs:
               fun start(app: Context, onChange: () -> Unit) {
                   if (started) return
                   started = true
+                  Thread { Np.init() }.start()          // motor rápido listo en cuanto abre la app
                   pool.execute {
                       try {
                           setStatus("prep", onChange)
@@ -726,6 +749,15 @@ jobs:
               /** Enlace de audio para un video: {url, ua, dur, title}. */
               fun resolve(app: Context, vid: String): JSONObject {
                   cache[vid]?.let { if (System.currentTimeMillis() - it.first < CACHE_MS) return it.second }
+                  // 1) Motor rápido (NewPipe): 1-2 segundos
+                  try {
+                      val o = Np.audio(vid)
+                      if (o.optString("url").isNotEmpty()) {
+                          cache[vid] = Pair(System.currentTimeMillis(), o)
+                          return o
+                      }
+                  } catch (e: Throwable) {}
+                  // 2) Respaldo: yt-dlp con varios métodos de YouTube a la vez (y la sesión si existe)
                   awaitReady(90_000)
                   try {
                       val j = dump(app, "https://www.youtube.com/watch?v=$vid")
@@ -1410,6 +1442,276 @@ jobs:
               }
           }
           APPEOF
+          cat > app/src/main/java/com/nexora/musicanx/Updater.kt <<'APPEOF'
+          package com.nexora.musicanx
+
+          import android.app.Activity
+          import android.app.PendingIntent
+          import android.content.BroadcastReceiver
+          import android.content.Context
+          import android.content.Intent
+          import android.content.pm.PackageInstaller
+          import android.net.Uri
+          import android.provider.Settings
+          import org.json.JSONObject
+          import java.net.HttpURLConnection
+          import java.net.URL
+
+          /**
+           * Descarga la nueva versión de Música NX desde GitHub y la instala encima, dentro de la app.
+           * Avisa del avance (bytes descargados y total) para mostrar porcentaje, velocidad y tiempo.
+           * Android siempre muestra su ventana de confirmación antes de instalar.
+           */
+          object Updater {
+              @Volatile private var running = false
+
+              private fun emit(state: String, done: Long = 0, total: Long = 0, msg: String = "") {
+                  MainActivity.emit(JSONObject().put("type", "upd").put("state", state)
+                      .put("done", done).put("total", total).put("msg", msg))
+              }
+
+              fun canInstall(act: Activity): Boolean = act.packageManager.canRequestPackageInstalls()
+
+              fun openPermission(act: Activity) {
+                  runCatching {
+                      act.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + act.packageName)))
+                  }
+              }
+
+              fun start(act: Activity, apkUrl: String) {
+                  if (running) return
+                  if (!apkUrl.startsWith("https://github.com/")) { emit("error", msg = "Enlace no válido"); return }
+                  if (!canInstall(act)) {
+                      // Primero hay que permitir "Instalar apps desconocidas" para Música NX.
+                      emit("perm")
+                      openPermission(act)
+                      return
+                  }
+                  running = true
+                  val app = act.applicationContext
+                  Thread {
+                      var sessionId = -1
+                      try {
+                          var url = URL(apkUrl)
+                          var conn: HttpURLConnection
+                          var hops = 0
+                          while (true) {
+                              conn = url.openConnection() as HttpURLConnection
+                              conn.instanceFollowRedirects = false
+                              conn.connectTimeout = 15000
+                              conn.readTimeout = 30000
+                              val code = conn.responseCode
+                              if (code in 300..399 && hops++ < 6) {
+                                  url = URL(url, conn.getHeaderField("Location")); conn.disconnect(); continue
+                              }
+                              if (code != 200) throw IllegalStateException("HTTP $code")
+                              break
+                          }
+                          val total = conn.contentLengthLong
+                          emit("start", 0, total)
+                          val installer = app.packageManager.packageInstaller
+                          val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
+                          params.setAppPackageName(app.packageName)
+                          if (total > 0) params.setSize(total)
+                          sessionId = installer.createSession(params)
+                          installer.openSession(sessionId).use { session ->
+                              conn.inputStream.use { input ->
+                                  session.openWrite("MusicaNX.apk", 0, if (total > 0) total else -1).use { out ->
+                                      val buf = ByteArray(64 * 1024)
+                                      var done = 0L
+                                      var last = 0L
+                                      while (true) {
+                                          val n = input.read(buf)
+                                          if (n < 0) break
+                                          out.write(buf, 0, n)
+                                          done += n
+                                          val now = System.currentTimeMillis()
+                                          if (now - last > 200) { last = now; emit("progress", done, total) }
+                                      }
+                                      emit("progress", done, if (total > 0) total else done)
+                                      session.fsync(out)
+                                  }
+                              }
+                              conn.disconnect()
+                              emit("installing")
+                              val pi = PendingIntent.getBroadcast(app, 7,
+                                  Intent(app, InstallResultReceiver::class.java),
+                                  PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE)
+                              session.commit(pi.intentSender)
+                          }
+                      } catch (e: Exception) {
+                          if (sessionId >= 0) runCatching { app.packageManager.packageInstaller.abandonSession(sessionId) }
+                          emit("error", msg = "No se pudo descargar. Revisa tu conexión.")
+                      } finally {
+                          running = false
+                      }
+                  }.start()
+              }
+
+              fun result(state: String) = emit(state)
+          }
+
+          /** Recibe la respuesta del instalador de Android. */
+          class InstallResultReceiver : BroadcastReceiver() {
+              override fun onReceive(context: Context, intent: Intent) {
+                  when (intent.getIntExtra(PackageInstaller.EXTRA_STATUS, PackageInstaller.STATUS_FAILURE)) {
+                      PackageInstaller.STATUS_PENDING_USER_ACTION -> {
+                          @Suppress("DEPRECATION")
+                          val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)
+                          if (confirm != null) {
+                              confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                              runCatching { context.startActivity(confirm) }
+                          }
+                      }
+                      PackageInstaller.STATUS_SUCCESS -> Updater.result("done")
+                      PackageInstaller.STATUS_FAILURE_ABORTED -> Updater.result("cancel")
+                      else -> Updater.result("failed")
+                  }
+              }
+          }
+          APPEOF
+          cat > app/src/main/java/com/nexora/musicanx/Np.java <<'APPEOF'
+          package com.nexora.musicanx;
+
+          import org.json.JSONObject;
+          import org.schabi.newpipe.extractor.MediaFormat;
+          import org.schabi.newpipe.extractor.NewPipe;
+          import org.schabi.newpipe.extractor.ServiceList;
+          import org.schabi.newpipe.extractor.downloader.Downloader;
+          import org.schabi.newpipe.extractor.downloader.Request;
+          import org.schabi.newpipe.extractor.downloader.Response;
+          import org.schabi.newpipe.extractor.exceptions.ReCaptchaException;
+          import org.schabi.newpipe.extractor.localization.ContentCountry;
+          import org.schabi.newpipe.extractor.localization.Localization;
+          import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper;
+          import org.schabi.newpipe.extractor.stream.AudioStream;
+          import org.schabi.newpipe.extractor.stream.DeliveryMethod;
+          import org.schabi.newpipe.extractor.stream.StreamInfo;
+
+          import java.io.ByteArrayOutputStream;
+          import java.io.IOException;
+          import java.io.InputStream;
+          import java.io.OutputStream;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.nio.charset.StandardCharsets;
+          import java.util.Collections;
+          import java.util.LinkedHashMap;
+          import java.util.List;
+          import java.util.Locale;
+          import java.util.Map;
+          import java.util.zip.GZIPInputStream;
+
+          /**
+           * Motor rápido de Música NX (NewPipe Extractor, Java puro): obtiene el audio de una
+           * canción en 1-2 segundos, sin arrancar Python. Si falla, Yt usa yt-dlp.
+           */
+          public final class Np {
+              private Np() {}
+
+              private static volatile boolean ready = false;
+
+              public static synchronized void init() {
+                  if (ready) return;
+                  try {
+                      Locale lc = Locale.getDefault();
+                      String l = lc.getLanguage() == null || lc.getLanguage().isEmpty() ? "es" : lc.getLanguage();
+                      String c = lc.getCountry() == null || lc.getCountry().isEmpty() ? "US" : lc.getCountry().toUpperCase(Locale.ROOT);
+                      NewPipe.init(new Http(), new Localization(l, c), new ContentCountry(c));
+                      ready = true;
+                  } catch (Throwable e) {
+                      ready = false;
+                  }
+              }
+
+              /** Mejor audio directo de un video: {url, ua, dur, title}. */
+              public static JSONObject audio(String vid) throws Exception {
+                  if (!ready) init();
+                  if (!ready) throw new IllegalStateException("Motor rápido no disponible");
+                  StreamInfo si = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=" + vid);
+                  List<AudioStream> auds = si.getAudioStreams() != null ? si.getAudioStreams() : Collections.<AudioStream>emptyList();
+                  AudioStream best = null;
+                  boolean bestM4a = false;
+                  int bestBr = -1;
+                  for (AudioStream a : auds) {
+                      if (!a.isUrl() || a.getDeliveryMethod() != DeliveryMethod.PROGRESSIVE_HTTP) continue;
+                      // Solo la pista de audio original (no doblajes automáticos)
+                      try { if (a.getAudioTrackType() != null && !a.getAudioTrackType().name().equals("ORIGINAL")) continue; } catch (Throwable ignored) {}
+                      boolean m4a = a.getFormat() == MediaFormat.M4A;
+                      int br = a.getAverageBitrate();
+                      if (best == null || (m4a && !bestM4a) || (m4a == bestM4a && br > bestBr)) {
+                          best = a; bestM4a = m4a; bestBr = br;
+                      }
+                  }
+                  if (best == null) throw new IllegalStateException("Sin audio directo");
+                  String url = best.getContent();
+                  return new JSONObject()
+                      .put("url", url)
+                      .put("ua", uaFor(url))
+                      .put("dur", si.getDuration())
+                      .put("title", si.getName() == null ? "" : si.getName())
+                      .put("engine", "rapido");
+              }
+
+              static boolean isVision(String url) {
+                  try { return YoutubeParsingHelper.isVisionOsStreamingUrl(url); } catch (Throwable e) { return false; }
+              }
+
+              static String uaFor(String url) {
+                  try { return isVision(url) ? YoutubeParsingHelper.getVisionOsUserAgent(null) : Http.UA; } catch (Throwable e) { return Http.UA; }
+              }
+
+              // ================= descargador HTTP para el extractor =================
+              static final class Http extends Downloader {
+                  static final String UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0";
+
+                  @Override
+                  public Response execute(Request request) throws IOException, ReCaptchaException {
+                      String url = request.url();
+                      HttpURLConnection con = (HttpURLConnection) new URL(url).openConnection();
+                      try {
+                          con.setConnectTimeout(10000);
+                          con.setReadTimeout(15000);
+                          con.setInstanceFollowRedirects(true);
+                          con.setRequestMethod(request.httpMethod());
+                          con.setRequestProperty("User-Agent", UA);
+                          con.setRequestProperty("Accept-Encoding", "gzip");
+                          for (Map.Entry<String, List<String>> h : request.headers().entrySet()) {
+                              List<String> vs = h.getValue();
+                              if (vs == null || vs.isEmpty()) continue;
+                              con.setRequestProperty(h.getKey(), String.join(", ", vs));
+                          }
+                          byte[] data = request.dataToSend();
+                          if (data != null) {
+                              con.setDoOutput(true);
+                              con.setFixedLengthStreamingMode(data.length);
+                              try (OutputStream os = con.getOutputStream()) { os.write(data); }
+                          }
+                          int code = con.getResponseCode();
+                          if (code == 429) throw new ReCaptchaException("reCaptcha Challenge requested", url);
+                          InputStream in = code >= 400 ? con.getErrorStream() : con.getInputStream();
+                          String body = "";
+                          if (in != null) {
+                              if ("gzip".equalsIgnoreCase(con.getContentEncoding())) in = new GZIPInputStream(in);
+                              try (InputStream is = in) {
+                                  ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                                  byte[] buf = new byte[16384]; int n;
+                                  while ((n = is.read(buf)) > 0) bo.write(buf, 0, n);
+                                  body = new String(bo.toByteArray(), StandardCharsets.UTF_8);
+                              }
+                          }
+                          Map<String, List<String>> hdrs = new LinkedHashMap<>();
+                          for (Map.Entry<String, List<String>> e : con.getHeaderFields().entrySet()) {
+                              if (e.getKey() != null) hdrs.put(e.getKey(), e.getValue());
+                          }
+                          return new Response(code, con.getResponseMessage(), hdrs, body, con.getURL().toString());
+                      } finally {
+                          con.disconnect();
+                      }
+                  }
+              }
+          }
+          APPEOF
           mkdir -p app/src/main/res/drawable app/src/main/res/mipmap-anydpi-v26 app/src/main/res/values
           cat > app/src/main/res/drawable/ic_launcher_foreground.xml <<'APPEOF'
           <?xml version="1.0" encoding="utf-8"?>
@@ -1506,8 +1808,9 @@ jobs:
           g = re.sub(r'versionCode = \d+', 'versionCode = ' + str(code), g)
           g = re.sub(r'versionName = "[^"]*"', 'versionName = "' + ver + '"', g)
           open(p, 'w', encoding='utf-8').write(g)
+          base = 'https://github.com/' + os.environ['REPO'] + '/releases/latest/download/'
           info = {'version': ver, 'code': code, 'obligatoria': not opcional, 'novedades': nov,
-                  'apk': 'https://github.com/' + os.environ['REPO'] + '/releases/latest/download/MusicaNX-arm64.apk'}
+                  'apk': base + 'MusicaNX-arm64.apk', 'apk_arm64': base + 'MusicaNX-arm64.apk', 'apk_armv7': base + 'MusicaNX-armv7.apk'}
           json.dump(info, open('version.json', 'w', encoding='utf-8'), ensure_ascii=False)
           notes = 'Música NX v' + ver + '\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga MusicaNX-arm64.apk (celulares de los últimos años) o MusicaNX-armv7.apk (celulares antiguos y muchos televisores).'
           open('release-notes.md', 'w', encoding='utf-8').write(notes)
