@@ -399,6 +399,56 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .kv{display:flex;justify-content:space-between;gap:12px;padding:2px 18px 14px;font-size:14px}
 .kv span{color:var(--mut)}
 
+/* ---------- Fondo del perfil ---------- */
+.banner .bimg{position:absolute;inset:-30px;background-size:cover;background-position:center;filter:blur(26px) saturate(1.3);transform:scale(1.05)}
+.banner .bimg.sharp{inset:0;filter:none;transform:none}
+.bn-edit{position:absolute;z-index:2;right:16px;top:calc(var(--st) + 12px);display:flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:99px;font-size:13px;font-weight:700;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.15);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.bn-edit .ic{width:16px;height:16px}
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 18px 14px}
+.bsw{position:relative;aspect-ratio:1.35;border-radius:16px;border:3px solid transparent;overflow:hidden;text-align:left}
+.bsw.on{border-color:#fff}
+.bsw span{position:absolute;left:7px;bottom:5px;font-size:10.5px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+
+/* ---------- Actualización obligatoria ---------- */
+#upd{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:calc(var(--st) + 20px) 22px calc(var(--sb) + 20px);background:var(--bg);overflow-y:auto}
+#upd .ubg{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#upd .ubg i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;filter:blur(70px);opacity:.35;animation:drift 14s ease-in-out infinite alternate}
+#upd .ubg i:nth-child(1){background:var(--acc);left:-30vmax;top:-30vmax}
+#upd .ubg i:nth-child(2){background:var(--acc2);right:-35vmax;bottom:-30vmax;animation-delay:-7s}
+@keyframes drift{to{transform:translate(12vmax,10vmax) scale(1.15)}}
+.ubox{position:relative;width:100%;max-width:420px;text-align:center}
+.ulogo{position:relative;width:168px;height:168px;margin:0 auto 22px;display:grid;place-items:center}
+.ulogo .logo{width:104px;height:104px;border-radius:34px;animation:float 3.2s ease-in-out infinite}
+@keyframes float{0%,100%{transform:rotate(-8deg) translateY(0)}50%{transform:rotate(-4deg) translateY(-8px)}}
+.ulogo::before{content:"";position:absolute;inset:26px;border-radius:50%;background:var(--grad);filter:blur(34px);opacity:.55;animation:glow 2.4s ease-in-out infinite}
+@keyframes glow{50%{opacity:.85;transform:scale(1.1)}}
+.uring{position:absolute;inset:0;width:168px;height:168px;transform:rotate(-90deg)}
+.uring circle{fill:none;stroke-width:6;stroke-linecap:round}
+.uring .b{stroke:rgba(255,255,255,.1)}
+.uring .f{stroke:url(#ugrad);stroke-dasharray:502.65;stroke-dashoffset:502.65;transition:stroke-dashoffset .3s linear}
+.ulogo.idle .uring{animation:spin 2.2s linear infinite}
+.ulogo.idle .uring .f{stroke-dashoffset:390}
+.utag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--acc);padding:5px 12px;border-radius:99px;background:color-mix(in srgb,var(--acc) 15%,transparent)}
+.utag .ic{width:14px;height:14px}
+.ubox h2{font-size:28px;font-weight:800;letter-spacing:-.5px;margin-top:12px;line-height:1.15}
+.uver{color:var(--mut);margin-top:6px;font-size:15px}
+.uver b{color:var(--text)}
+.unotes{list-style:none;text-align:left;margin:18px 0 0;padding:14px 16px;border-radius:20px;background:var(--card);border:1px solid var(--line);max-height:30vh;overflow-y:auto}
+.unotes li{display:flex;gap:10px;font-size:14px;line-height:1.45;padding:5px 0;color:var(--text)}
+.unotes li .ic{width:18px;height:18px;color:var(--acc);flex:none;margin-top:1px}
+.uprog{margin-top:20px}
+.upct{font-size:44px;font-weight:800;letter-spacing:-1px;line-height:1;font-variant-numeric:tabular-nums}
+.upct small{font-size:20px;color:var(--mut);font-weight:700}
+.ubar{height:10px;border-radius:10px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:14px}
+.ubar i{display:block;height:100%;width:0;border-radius:10px;background:var(--grad);transition:width .3s linear;box-shadow:0 0 16px color-mix(in srgb,var(--acc) 70%,transparent)}
+.ustats{display:flex;justify-content:space-between;gap:10px;margin-top:10px;font-size:13px;color:var(--mut);font-variant-numeric:tabular-nums}
+.ustats b{color:var(--text);font-weight:700}
+.umsg{color:var(--mut);font-size:13.5px;margin-top:14px;min-height:1em;line-height:1.5}
+.umsg.err{color:#ff7a8e}
+.ubtn{width:100%;height:56px;margin-top:18px;font-size:16.5px;border-radius:20px}
+.ubtn:disabled{opacity:.6}
+.ulater{width:100%;margin-top:10px;background:transparent;border:0;color:var(--mut)}
+
 /* ---------- Aviso ---------- */
 #toast{position:fixed;left:50%;top:calc(var(--st) + 14px);z-index:60;transform:translate(-50%,-20px);background:rgba(28,28,40,.94);border:1px solid var(--line);color:var(--text);padding:11px 18px;border-radius:16px;font-weight:600;font-size:13.5px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.4);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 #toast.show{opacity:1;transform:translate(-50%,0)}
@@ -583,6 +633,28 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <div id="sheet" role="dialog"></div>
 <div id="toast" role="status"></div>
 <input type="file" id="photoIn" accept="image/*" hidden>
+
+<div id="upd" class="hidden" role="dialog" aria-modal="true" aria-labelledby="updTitle">
+  <div class="ubg"><i></i><i></i></div>
+  <div class="ubox">
+    <div class="ulogo idle" id="updLogo">
+      <svg class="uring" viewBox="0 0 168 168"><defs><linearGradient id="ugrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--acc)"/><stop offset="1" style="stop-color:var(--acc2)"/></linearGradient></defs><circle class="b" cx="84" cy="84" r="80"/><circle class="f" id="updRing" cx="84" cy="84" r="80"/></svg>
+      <div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
+    </div>
+    <span class="utag" id="updTag"><svg class="ic"><use href="#i-spark"/></svg>Actualización obligatoria</span>
+    <h2 id="updTitle">Nueva versión de Música NX</h2>
+    <p class="uver" id="updVer"></p>
+    <ul class="unotes" id="updNotes"></ul>
+    <div class="uprog hidden" id="updProg">
+      <div class="upct" id="updPct">0<small>%</small></div>
+      <div class="ubar"><i id="updBar"></i></div>
+      <div class="ustats"><span id="updMB">0 MB de 0 MB</span><span id="updEta">Calculando…</span></div>
+    </div>
+    <p class="umsg" id="updMsg"></p>
+    <button class="btn fill ubtn" id="updBtn">Actualizar ahora</button>
+    <button class="btn ulater hidden" id="updLater">Más tarde</button>
+  </div>
+</div>
 
 <script>
 'use strict';
@@ -896,6 +968,7 @@ window.nxEvent = s => {
   let e; try { e = JSON.parse(s); } catch (x) { return; }
   if (e.type === 'bg') onNative(e);
   else if (e.type === 'cmd') { if (e.cmd === 'next') next(false); else if (e.cmd === 'prev') prev(); }
+  else if (e.type === 'upd') onUpd(e);
   else if (e.type === 'engine') { P.eng.status = e.status; if (e.version) P.eng.version = e.version; updateEngineUI(); }
   else if (e.type === 'account') {
     const was = P.eng.logged; P.eng.logged = !!e.logged; updateEngineUI();
@@ -1131,9 +1204,9 @@ function updateLikeUI() {
 function updateSrc() {
   const el = $('#plSrc');
   if (P.src === 'nat') el.innerHTML = ic('music') + 'Canción completa · Motor NX';
-  else if (P.src === 'yt') el.innerHTML = ic('yt') + 'Canción completa · YouTube' + (P.resolving && !P.video ? ' · preparando segundo plano…' : '');
+  else if (P.src === 'yt') el.innerHTML = ic('music') + 'Canción completa';
   else if (P.src === 'pv') { el.innerHTML = ic('clock') + 'Vista previa de 30 s'; setVideo(false); }
-  else el.innerHTML = P.resolving ? ic('music') + 'Preparando la canción…' : '';
+  else el.innerHTML = P.resolving ? ic('music') + 'Cargando…' : '';
   $('#plVideo').classList.toggle('hidden', !(P.vid && (P.src === 'yt' || P.src === 'nat')));
 }
 function setVideo(v) {
@@ -1362,7 +1435,7 @@ function aboutSheet() {
     <button class="si" data-a="priv">${ic('shield')}<span>Política de privacidad</span></button>
     <button class="si" data-a="upd">${ic('update')}<span>Buscar actualizaciones</span></button>`, sh => sh.onclick = e => {
     const b = e.target.closest('[data-a]'); if (!b) return; closeSheet();
-    if (b.dataset.a === 'priv') openPrivacy(); else openExternal(`https://github.com/${REPO}/releases/latest`);
+    if (b.dataset.a === 'priv') openPrivacy(); else checkUpdate(true);
   });
 }
 function openExternal(url) { if (A && A.openUrl) A.openUrl(url); else window.open(url, '_blank'); }
@@ -1730,11 +1803,45 @@ function renderLib() {
   const c = $('#libCreate'); if (c) c.onclick = () => createPlaylist();
 }
 
+/* ---------- Fondo del perfil ---------- */
+const BANNERS = {
+  aurora: ['Aurora', 'radial-gradient(60% 100% at 12% 10%,var(--acc) 0%,transparent 62%),radial-gradient(55% 90% at 92% 0%,var(--acc2) 0%,transparent 60%),linear-gradient(140deg,#1d1633,#0a0a12)'],
+  ocean: ['Océano', 'radial-gradient(70% 100% at 15% 0%,#22d3ee 0%,transparent 60%),radial-gradient(60% 90% at 95% 30%,#3b82f6 0%,transparent 62%),linear-gradient(160deg,#0b1d3a,#07070d)'],
+  sunset: ['Atardecer', 'radial-gradient(70% 100% at 10% 0%,#fb923c 0%,transparent 60%),radial-gradient(60% 100% at 90% 10%,#f43f5e 0%,transparent 62%),linear-gradient(160deg,#3b0a2a,#0a0710)'],
+  forest: ['Bosque', 'radial-gradient(70% 100% at 20% 0%,#34d399 0%,transparent 60%),radial-gradient(60% 90% at 90% 20%,#0d9488 0%,transparent 62%),linear-gradient(160deg,#052e2b,#06090a)'],
+  galaxy: ['Galaxia', 'radial-gradient(1.5px 1.5px at 20% 30%,#fff,transparent),radial-gradient(1.5px 1.5px at 70% 20%,#fff,transparent),radial-gradient(1px 1px at 45% 60%,#fff,transparent),radial-gradient(1px 1px at 85% 55%,#fff,transparent),radial-gradient(60% 90% at 20% 10%,#a855f7 0%,transparent 60%),radial-gradient(60% 90% at 85% 20%,#ec4899 0%,transparent 60%),linear-gradient(160deg,#1e1b4b,#07060f)'],
+  night: ['Noche', 'radial-gradient(70% 100% at 80% 0%,#475569 0%,transparent 60%),linear-gradient(160deg,#1e293b,#05060a)'],
+  fire: ['Fuego', 'radial-gradient(70% 100% at 25% 0%,#f59e0b 0%,transparent 58%),radial-gradient(60% 100% at 85% 15%,#ef4444 0%,transparent 60%),linear-gradient(160deg,#2a0a06,#090505)'],
+  candy: ['Dulce', 'radial-gradient(70% 100% at 15% 5%,#f472b6 0%,transparent 60%),radial-gradient(60% 90% at 90% 15%,#a78bfa 0%,transparent 60%),linear-gradient(160deg,#2a1033,#0a0710)']
+};
+function paintBanner(el) {
+  if (!el) return;
+  const b = D.set.banner || 'aurora';
+  el.innerHTML = '';
+  if (b === 'img' && D.set.bannerImg) { el.style.background = '#111'; el.innerHTML = `<div class="bimg sharp" style="background-image:url('${D.set.bannerImg}')"></div>`; }
+  else if (b === 'photo' && D.set.photo) { el.style.background = '#111'; el.innerHTML = `<div class="bimg" style="background-image:url('${D.set.photo}')"></div>`; }
+  else el.style.background = (BANNERS[b] || BANNERS.aurora)[1];
+}
+function bannerSheet() {
+  const cur = D.set.banner || 'aurora';
+  openSheet(`<div class="sh-title">Fondo del perfil</div>
+    <div class="bgrid">${Object.entries(BANNERS).map(([k, v]) => `<button class="bsw${cur === k ? ' on' : ''}" data-bn="${k}" style="background:${v[1]}"><span>${v[0]}</span></button>`).join('')}</div>
+    ${D.set.photo ? `<button class="si${cur === 'photo' ? ' on' : ''}" data-bn="photo">${ic('user')}<span>Usar mi foto de perfil (difuminada)</span></button>` : ''}
+    <button class="si${cur === 'img' ? ' on' : ''}" data-bn="pick">${ic('image')}<span>Elegir imagen de la galería</span></button>`, sh => sh.onclick = e => {
+    const b = e.target.closest('[data-bn]'); if (!b) return;
+    const k = b.dataset.bn; closeSheet();
+    if (k === 'pick') { pickPhoto('banner'); return; }
+    D.set.banner = k; save('set'); paintBanner($('#meBanner')); toast('Fondo actualizado');
+  });
+}
+
 /* ---------- Foto de perfil ---------- */
-function pickPhoto() { const i = $('#photoIn'); i.value = ''; i.click(); }
+let photoMode = 'avatar';
+function pickPhoto(mode) { photoMode = mode === 'banner' ? 'banner' : 'avatar'; const i = $('#photoIn'); i.value = ''; i.click(); }
 function profileSheet() {
   const items = [{ ic: 'camera', label: D.set.photo ? 'Cambiar foto de perfil' : 'Añadir foto de perfil', fn: pickPhoto }];
   if (D.set.photo) items.push({ ic: 'trash', label: 'Quitar foto', danger: true, fn: () => { delete D.set.photo; save('set'); renderMe(); paintAvatars(); toast('Foto quitada'); } });
+  items.push({ ic: 'palette', label: 'Cambiar fondo del perfil', fn: bannerSheet });
   items.push({ ic: 'edit', label: 'Cambiar nombre', fn: () => inputSheet('¿Cómo te llamas?', D.set.name, 'Guardar', v => { D.set.name = v; save('set'); renderMe(); renderHomeQuick(); }) });
   actionSheet(`<div class="sh-head"><span class="avatar" style="width:52px;height:52px;font-size:22px">${avatarHTML()}</span><div class="meta"><div class="t1">${esc(D.set.name || 'Tu perfil')}</div><div class="t2">Editar perfil</div></div></div>`, items);
 }
@@ -1743,11 +1850,20 @@ $('#photoIn').addEventListener('change', () => {
   const url = URL.createObjectURL(f), im = new Image();
   im.onload = () => {
     try {
-      const s = Math.min(im.naturalWidth, im.naturalHeight), c = document.createElement('canvas');
-      c.width = c.height = 320;
-      c.getContext('2d').drawImage(im, (im.naturalWidth - s) / 2, (im.naturalHeight - s) / 2, s, s, 0, 0, 320, 320);
-      D.set.photo = c.toDataURL('image/jpeg', 0.86); save('set');
-      renderMe(); paintAvatars(); toast('Foto de perfil actualizada');
+      const W = im.naturalWidth, H = im.naturalHeight, c = document.createElement('canvas');
+      if (photoMode === 'banner') {
+        const ow = 1080, oh = 540, sc = Math.max(ow / W, oh / H), sw = ow / sc, sh = oh / sc;
+        c.width = ow; c.height = oh;
+        c.getContext('2d').drawImage(im, (W - sw) / 2, (H - sh) / 2, sw, sh, 0, 0, ow, oh);
+        D.set.bannerImg = c.toDataURL('image/jpeg', 0.82); D.set.banner = 'img'; save('set');
+        paintBanner($('#meBanner')); toast('Fondo actualizado');
+      } else {
+        const s = Math.min(W, H);
+        c.width = c.height = 320;
+        c.getContext('2d').drawImage(im, (W - s) / 2, (H - s) / 2, s, s, 0, 0, 320, 320);
+        D.set.photo = c.toDataURL('image/jpeg', 0.86); save('set');
+        renderMe(); paintAvatars(); toast('Foto de perfil actualizada');
+      }
     } catch (e) { toast('No se pudo usar esa imagen'); }
     URL.revokeObjectURL(url);
   };
@@ -1760,7 +1876,7 @@ function renderMe() {
   const mins = Math.round(D.stats.secs / 60);
   const top = topPlayed(5);
   const sw = Object.entries(ACCENTS).map(([k, v]) => `<button data-acc="${k}" class="${D.set.accent === k ? 'on' : ''}" style="background:linear-gradient(135deg,${v[0]},${v[1]})" aria-label="Color ${v[2]}"></button>`).join('');
-  $('#meBody').innerHTML = `<div class="banner"></div><div class="me-head"><button class="me-av" id="meAv" aria-label="Cambiar foto de perfil"><span class="avatar">${avatarHTML()}</span><span class="cam">${ic('camera')}</span></button><h2>${esc(D.set.name || 'Tu perfil')}</h2>
+  $('#meBody').innerHTML = `<div class="banner" id="meBanner"></div><button class="bn-edit" id="bnEdit">${ic('palette')}Fondo</button><div class="me-head"><button class="me-av" id="meAv" aria-label="Cambiar foto de perfil"><span class="avatar">${avatarHTML()}</span><span class="cam">${ic('camera')}</span></button><h2>${esc(D.set.name || 'Tu perfil')}</h2>
     <button class="btn" id="meEdit">${ic('edit')}Editar perfil</button></div>
     <div class="stats"><div class="stat"><b>${fmtN(D.stats.plays)}</b><small>Reproducciones</small></div><div class="stat"><b>${fmtN(mins)}</b><small>Minutos</small></div>
       <div class="stat"><b>${D.likes.length}</b><small>Me gusta</small></div><div class="stat"><b>${D.pls.length}</b><small>Playlists</small></div></div>
@@ -1787,6 +1903,9 @@ function renderMe() {
     </div>
     <div class="foot"><b>Música NX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
   $('#meEdit').onclick = profileSheet;
+  paintBanner($('#meBanner'));
+  $('#bnEdit').onclick = bannerSheet;
+  $('#meBanner').onclick = bannerSheet;
   $('#meAv').onclick = () => D.set.photo ? profileSheet() : pickPhoto();
 }
 
@@ -1836,7 +1955,7 @@ $('#meBody').onclick = e => {
   else if (k === 'about') aboutSheet();
   else if (k === 'engine') engineSheet();
   else if (k === 'account') accountSheet();
-  else if (k === 'upd') openExternal(`https://github.com/${REPO}/releases/latest`);
+  else if (k === 'upd') checkUpdate(true);
   else if (k === 'clear') actionSheet('<div class="sh-title">¿Borrar tu historial?</div><p style="padding:0 18px 10px;color:var(--mut);font-size:14px">Se borran las canciones recientes, búsquedas y estadísticas. Tus me gusta y playlists se conservan.</p>', [
     { ic: 'trash', label: 'Sí, borrar historial', danger: true, fn: () => { D.hist = []; D.plays = {}; D.rs = []; D.recent = []; D.stats = { plays: 0, secs: 0 }; save('hist', 'plays', 'rs', 'recent', 'stats'); renderMe(); renderHomeQuick(); toast('Historial borrado'); } },
     { ic: 'x', label: 'Cancelar', fn: () => {} }]);
@@ -1904,18 +2023,99 @@ $('#scrim').onclick = closeSheet;
 
 /* botón Atrás de Android */
 window.appBack = () => {
+  if (U.open) { if (U.must) return true; U.open = false; $('#upd').classList.add('hidden'); return true; }
   if ($('#sheet').classList.contains('open')) { closeSheet(); return true; }
   if (playerOpen) { closePlayer(); return true; }
   if (stack.length) { popPage(); return true; }
   if (curTab !== 'home') { switchTab('home'); return true; }
   return false;
 };
-window.appOnResume = () => {};
+window.appOnResume = () => {
+  // Volvió de permitir "instalar apps desconocidas": continúa la actualización sola
+  if (U.open && U.state === 'perm' && A && A.updCanInstall && A.updCanInstall()) startUpdate();
+};
 window.appOnPause = () => {
   save('stats');
   // Al salir de la app la música sigue con el motor NX (con la pantalla apagada y en la notificación)
   if (NAT && P.cur && P.src === 'yt' && P.nat && !P.userPaused) { if (P.video) setVideo(false); handoffToNative(true); }
 };
+
+/* ---------- Actualización obligatoria ---------- */
+const UPD_JSON = `https://github.com/${REPO}/releases/latest/download/version.json`;
+const U = { open: false, must: true, apk: '', state: 'idle', samples: [], total: 0 };
+const fmtMB = b => (b / 1048576).toFixed(b >= 104857600 ? 0 : 1) + ' MB';
+function fmtEta(s) { if (!isFinite(s) || s < 0) return 'Calculando…'; s = Math.ceil(s); return s < 60 ? `Quedan ${s} s` : `Quedan ${Math.floor(s / 60)} min ${s % 60} s`; }
+async function checkUpdate(manual) {
+  if (!A || !A.updStart) { if (manual) toast('Las actualizaciones funcionan en la app instalada'); return false; }
+  try {
+    const info = JSON.parse(A.appInfo());
+    const v = await getJSON(UPD_JSON + '?t=' + Date.now());
+    if (v && +v.code > +(info.code || 0)) { showUpdate(v, info); return true; }
+    if (manual) toast('Ya tienes la última versión (' + (info.version || '') + ')');
+  } catch (e) { if (manual) toast('No se pudo buscar actualizaciones. Revisa tu conexión'); }
+  return false;
+}
+function showUpdate(v, info) {
+  U.must = v.obligatoria !== false;
+  U.apk = /arm64|x86_64/.test(info.abi || 'arm64') ? (v.apk_arm64 || v.apk) : (v.apk_armv7 || v.apk);
+  $('#updVer').innerHTML = `Versión <b>${esc(v.version)}</b> · tienes la ${esc(info.version || '')}`;
+  const notes = (v.novedades || []).slice(0, 12);
+  $('#updNotes').innerHTML = notes.length ? notes.map(n => `<li>${ic('check')}<span>${esc(n)}</span></li>`).join('') : `<li>${ic('check')}<span>Mejoras y correcciones</span></li>`;
+  $('#updTag').innerHTML = ic('spark') + (U.must ? 'Actualización obligatoria' : 'Actualización disponible');
+  $('#updLater').classList.toggle('hidden', U.must);
+  setUpdState('idle');
+  U.open = true; $('#upd').classList.remove('hidden');
+  closeSheet(); if (playerOpen) closePlayer();
+}
+function setUpdState(st, msg, err) {
+  U.state = st;
+  const btn = $('#updBtn'), logo = $('#updLogo');
+  logo.classList.toggle('idle', st === 'idle' || st === 'perm' || st === 'error' || st === 'installing');
+  $('#updProg').classList.toggle('hidden', !(st === 'down' || st === 'installing'));
+  $('#updNotes').classList.toggle('hidden', st === 'down' || st === 'installing');
+  btn.disabled = st === 'down' || st === 'installing';
+  btn.textContent = ({ idle: 'Actualizar ahora', perm: 'Ya lo permití, actualizar', down: 'Descargando…', installing: 'Instalando…', error: 'Reintentar' })[st] || 'Actualizar ahora';
+  const m = $('#updMsg'); m.textContent = msg || ''; m.classList.toggle('err', !!err);
+  if (st === 'idle' || st === 'perm' || st === 'error') $('#updRing').style.strokeDashoffset = '';
+}
+function startUpdate() {
+  if (!U.apk) return;
+  if (A.updCanInstall && !A.updCanInstall()) {
+    setUpdState('perm', 'Activa "Permitir de esta fuente" para Música NX en la pantalla que se abrió y vuelve aquí.');
+    A.updPerm(); return;
+  }
+  U.samples = []; U.total = 0;
+  setUpdState('down', 'Conectando…');
+  updProgress(0, 0);
+  A.updStart(U.apk);
+}
+function updProgress(done, total) {
+  const pct = total > 0 ? Math.min(100, Math.floor(done / total * 100)) : 0;
+  $('#updPct').innerHTML = pct + '<small>%</small>';
+  $('#updBar').style.width = pct + '%';
+  $('#updRing').style.strokeDashoffset = (502.65 * (1 - pct / 100)).toFixed(1);
+  const now = Date.now(); U.samples.push([now, done]);
+  while (U.samples.length > 2 && now - U.samples[0][0] > 4000) U.samples.shift();
+  const s0 = U.samples[0], dt = (now - s0[0]) / 1000, speed = dt > 0.3 ? (done - s0[1]) / dt : 0;
+  $('#updMB').innerHTML = total > 0 ? `<b>${fmtMB(done)}</b> de ${fmtMB(total)}` : `<b>${fmtMB(done)}</b>`;
+  $('#updEta').innerHTML = speed > 0 ? `${fmtMB(speed)}/s · ${fmtEta((total - done) / speed)}` : 'Calculando…';
+}
+function onUpd(e) {
+  if (e.state === 'perm') setUpdState('perm', 'Activa "Permitir de esta fuente" para Música NX y vuelve aquí.');
+  else if (e.state === 'start') { U.total = e.total; setUpdState('down', 'Descargando la nueva versión…'); updProgress(0, e.total); }
+  else if (e.state === 'progress') { if (e.total) U.total = e.total; if (U.state !== 'down') setUpdState('down', 'Descargando la nueva versión…'); updProgress(e.done, U.total); }
+  else if (e.state === 'installing') {
+    $('#updPct').innerHTML = '100<small>%</small>'; $('#updBar').style.width = '100%'; $('#updRing').style.strokeDashoffset = '0';
+    if (U.total > 0) $('#updMB').innerHTML = `<b>${fmtMB(U.total)}</b> de ${fmtMB(U.total)}`;
+    $('#updEta').textContent = '¡Descarga completa!';
+    setUpdState('installing', 'Toca "Actualizar" en la ventana de Android para terminar.');
+  }
+  else if (e.state === 'cancel') setUpdState('idle', 'Instalación cancelada. Toca "Actualizar ahora" para intentarlo de nuevo.');
+  else if (e.state === 'failed') setUpdState('error', 'No se pudo instalar la actualización. Intenta de nuevo.', true);
+  else if (e.state === 'error') setUpdState('error', e.msg || 'No se pudo descargar. Revisa tu conexión.', true);
+}
+$('#updBtn').onclick = startUpdate;
+$('#updLater').onclick = () => { U.open = false; $('#upd').classList.add('hidden'); };
 
 /* ---------- Motor y cuenta de YouTube ---------- */
 function engineText() {
@@ -1973,7 +2173,12 @@ function restoreNative() {
 
 /* ---------- Inicio de la app ---------- */
 let splashT0 = Date.now();
-function hideSplash() { const w = Math.max(0, 900 - (Date.now() - splashT0)); setTimeout(() => $('#splash').classList.add('out'), w); }
+let updChecked = false;
+function hideSplash() {
+  const w = Math.max(0, 900 - (Date.now() - splashT0));
+  setTimeout(() => $('#splash').classList.add('out'), w);
+  if (!updChecked) { updChecked = true; setTimeout(() => checkUpdate(false), w + 400); }
+}
 setTimeout(hideSplash, 4000);
 applyAccent(); updateModes(); setPlaying(false);
 if (NAT) { try { Object.assign(P.eng, JSON.parse(A.engine())); P.engKnown = true; } catch (e) {} restoreNative(); }
