@@ -406,6 +406,91 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .kv{display:flex;justify-content:space-between;gap:12px;padding:2px 18px 14px;font-size:14px}
 .kv span{color:var(--mut)}
 
+/* ---------- Inicio de sesión ---------- */
+#auth{position:fixed;inset:0;z-index:93;background:var(--bg);overflow-y:auto;display:flex;flex-direction:column}
+#auth .ubg{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+#auth .ubg i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;filter:blur(70px);opacity:.33;animation:drift 14s ease-in-out infinite alternate}
+#auth .ubg i:nth-child(1){background:var(--acc);left:-30vmax;top:-30vmax}
+#auth .ubg i:nth-child(2){background:var(--acc2);right:-35vmax;bottom:-30vmax;animation-delay:-7s}
+.au-box{position:relative;margin:auto;width:100%;max-width:440px;padding:calc(var(--st) + 30px) 22px calc(var(--sb) + 24px)}
+.au-logo{width:92px;height:92px;border-radius:30px;margin:0 auto 20px;animation:float 3.2s ease-in-out infinite}
+.au-box h1{font-size:30px;font-weight:800;letter-spacing:-.6px;text-align:center;line-height:1.1}
+#auMain>p,.au-box>p{color:var(--mut);text-align:center;margin:8px 0 26px;font-size:14.5px;line-height:1.5}
+.au-btn{display:flex;align-items:center;gap:14px;width:100%;height:58px;padding:0 18px;border-radius:20px;margin-top:12px;font-weight:700;font-size:15.5px;background:var(--card);border:1px solid var(--line);text-align:left}
+.au-btn .sq{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff}
+.au-btn .sq .ic{width:20px;height:20px}
+.au-btn>.ic{margin-left:auto;color:var(--dim);width:18px}
+.au-btn.main{background:#fff;color:#111;border:0}
+.au-btn.main>.ic{color:#888}
+.au-or{display:flex;align-items:center;gap:12px;color:var(--dim);font-size:13px;margin:20px 0 6px}
+.au-or::before,.au-or::after{content:"";flex:1;height:1px;background:var(--line)}
+.au-guest{width:100%;height:52px;border-radius:18px;font-weight:700;color:var(--text);border:1px dashed rgba(255,255,255,.25)}
+.au-legal{color:var(--dim);font-size:12px;text-align:center;margin-top:18px;line-height:1.5}
+.au-legal button{color:var(--acc);font-weight:700;font-size:12px}
+.au-form{display:none}
+.au-form.on{display:block}
+.au-back{display:flex;align-items:center;gap:6px;color:var(--mut);font-weight:700;margin-bottom:14px}
+.au-back .ic{width:20px;height:20px}
+.au-field{display:flex;align-items:center;gap:10px;height:56px;padding:0 14px;border-radius:18px;background:var(--card);border:2px solid transparent;margin-top:12px}
+.au-field:focus-within{border-color:var(--acc)}
+.au-field .ic{color:var(--dim);width:20px;height:20px}
+.au-field input,.au-field select{flex:1;min-width:0;border:0;background:transparent;outline:none;font-size:16px;color:var(--text)}
+.au-field select{flex:none;width:auto;max-width:138px;font-weight:700}
+.au-field select option{background:#161622}
+.au-tabs{display:flex;gap:6px;padding:5px;border-radius:18px;background:var(--card);margin-bottom:6px}
+.au-tabs button{flex:1;height:40px;border-radius:14px;font-weight:700;color:var(--mut)}
+.au-tabs button.on{background:var(--grad);color:#fff}
+.au-go{width:100%;height:56px;border-radius:20px;margin-top:18px;font-size:16px}
+.au-msg{min-height:20px;margin-top:12px;font-size:13.5px;color:var(--mut);text-align:center;line-height:1.45}
+.au-msg.err{color:#ff7a8e}
+.au-link{display:block;margin:14px auto 0;color:var(--acc);font-weight:700;font-size:13.5px}
+.lock{display:flex;flex-direction:column;align-items:center;text-align:center;padding:6px 22px 10px}
+.lock .sq{width:64px;height:64px;border-radius:22px;background:var(--grad);display:grid;place-items:center;color:#fff;margin-bottom:12px}
+.lock .sq .ic{width:30px;height:30px}
+.lock b{font-size:19px}
+.lock p{color:var(--mut);font-size:14px;margin-top:6px;line-height:1.5}
+.lock .btn{width:100%;height:52px;margin-top:16px}
+.acct{display:flex;align-items:center;gap:12px;margin:14px 16px 0;padding:14px 16px;border-radius:20px;background:var(--card);border:1px solid var(--line)}
+.acct .meta small{color:var(--mut);font-size:12.5px;display:block}
+.acct .btn{padding:8px 14px;font-size:13px}
+/* ---------- Hojas con nuevo diseño ---------- */
+.tm-head{position:relative;display:flex;align-items:center;gap:14px;margin:0 14px 12px;padding:14px;border-radius:24px;overflow:hidden;isolation:isolate;background:rgba(255,255,255,.05)}
+.tm-head .bgi{position:absolute;inset:-30px;z-index:-1;background-size:cover;background-position:center;filter:blur(30px) saturate(1.4);opacity:.45}
+.tm-head .cv{width:64px;height:64px;border-radius:18px;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.tm-head b{display:block;font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm-head small{display:block;color:rgba(255,255,255,.75);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tm-play{width:48px;height:48px;border-radius:16px;background:var(--grad);display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 8px 20px -6px color-mix(in srgb,var(--acc) 80%,transparent)}
+.tm-play .ic{width:22px;height:22px}
+.tm-quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:0 14px 12px}
+.tm-quick button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:18px;background:rgba(255,255,255,.06);font-size:11.5px;font-weight:700;color:rgba(255,255,255,.85)}
+.tm-quick button .ic,.tm-quick button .dlr{width:22px;height:22px}
+.tm-quick button.on{color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,transparent)}
+.tm-quick button.on.green{color:#22C55E;background:rgba(34,197,94,.14)}
+.sgroup{margin:0 14px 8px;border-radius:22px;background:rgba(255,255,255,.05);border:1px solid var(--line);overflow:hidden}
+.sgroup .si{padding:12px 14px;gap:14px;border-bottom:1px solid var(--line)}
+.sgroup .si:last-child{border-bottom:0}
+.si .sq{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none;background:rgba(255,255,255,.08)}
+.si .sq .ic{width:19px;height:19px;color:#fff}
+.si>.ic.chev{margin-left:auto;color:var(--dim);width:18px}
+.si.danger .sq{background:rgba(255,107,127,.15)}
+.si.danger .sq .ic{color:#ff6b7f}
+.si.on .sq{background:color-mix(in srgb,var(--acc) 20%,transparent)}
+.si.on .sq .ic{color:var(--acc)}
+.si .lbl{display:flex;flex-direction:column;min-width:0}
+.si .lbl small{color:var(--mut);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---------- Explorar por géneros ---------- */
+.gsec{margin-top:6px}
+.gsec .gh{display:flex;align-items:center;gap:12px;padding:0 16px;margin:26px 0 12px}
+.gsec .gh .gdot{width:42px;height:42px;border-radius:14px;overflow:hidden;flex:none}
+.gsec .gh .gdot img{width:100%;height:100%;object-fit:cover}
+.gsec .gh h2{flex:1;font-size:20px;font-weight:800}
+.gsec .gh button{color:var(--acc);font-weight:700;font-size:13px;display:flex;align-items:center}
+.gsec .gh button .ic{width:16px;height:16px}
+.vermas{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 32px);margin:14px 16px 0;height:50px;border-radius:18px;background:var(--card2);border:1px solid var(--line);font-weight:700}
+.vermas .ic{width:18px;height:18px}
+.vermas.big{background:var(--grad);border:0;color:#fff;margin-top:26px}
+.loadmsg{color:var(--mut);font-size:13px;text-align:center;padding:10px 16px}
+
 /* ---------- Descargas ---------- */
 .row .dl{width:34px;height:34px;color:var(--dim)}
 .row .dl .ic{width:19px;height:19px}
@@ -566,6 +651,10 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2"/></symbol>
   <symbol id="i-rows" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="3.5" cy="18" r="1.2"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
   <symbol id="i-dlok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none"/><path d="M12 7.5v7M9 11.8l3 3 3-3" stroke="#07070D" stroke-width="2.2"/></symbol>
   <symbol id="i-wifioff" viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 4.2-2.6M9.6 5.1A15 15 0 0 1 22 8.5M5 12a10 10 0 0 1 3.5-2M13 9.6a10 10 0 0 1 6 2.4M8.5 15.5a5 5 0 0 1 7 0M12 19.5h.01M3 3l18 18"/></symbol>
@@ -697,6 +786,51 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <div id="toast" role="status"></div>
 <input type="file" id="photoIn" accept="image/*" hidden>
 
+<div id="auth" class="hidden" role="dialog" aria-modal="true" aria-labelledby="auTitle">
+  <div class="ubg"><i></i><i></i></div>
+  <div class="au-box">
+    <div class="logo au-logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
+    <div class="au-form on" id="auMain">
+      <h1 id="auTitle">Bienvenido a Música NX</h1>
+      <p>Inicia sesión para descargar música, poner tu foto y guardar tu perfil.</p>
+      <button class="au-btn main" data-au="google"><span class="sq" style="background:linear-gradient(135deg,#4285F4,#34A853)"><svg class="ic"><use href="#i-user"/></svg></span>Continuar con Google<svg class="ic"><use href="#i-right"/></svg></button>
+      <button class="au-btn" data-au="email"><span class="sq" style="background:linear-gradient(135deg,#8B5CF6,#EC4899)"><svg class="ic"><use href="#i-mail"/></svg></span>Continuar con correo<svg class="ic"><use href="#i-right"/></svg></button>
+      <button class="au-btn" data-au="phone"><span class="sq" style="background:linear-gradient(135deg,#22C55E,#0EA5E9)"><svg class="ic"><use href="#i-phone"/></svg></span>Continuar con número de teléfono<svg class="ic"><use href="#i-right"/></svg></button>
+      <div class="au-or">o</div>
+      <button class="au-guest" data-au="guest">Entrar como invitado</button>
+      <p class="au-msg" id="auMsg"></p>
+      <div class="au-legal">Como invitado no podrás descargar música ni poner foto de perfil.<br>Al continuar aceptas la <button data-au="priv">Política de privacidad</button>.</div>
+    </div>
+    <div class="au-form" id="auEmail">
+      <button class="au-back" data-au="back"><svg class="ic"><use href="#i-back"/></svg>Volver</button>
+      <h1>Con tu correo</h1>
+      <div class="au-tabs" style="margin-top:18px"><button class="on" data-em="in">Iniciar sesión</button><button data-em="up">Crear cuenta</button></div>
+      <label class="au-field hidden" id="emNameF"><svg class="ic"><use href="#i-user"/></svg><input id="emName" placeholder="Tu nombre" autocomplete="name"></label>
+      <label class="au-field"><svg class="ic"><use href="#i-mail"/></svg><input id="emMail" type="email" placeholder="Correo electrónico" autocomplete="email" inputmode="email"></label>
+      <label class="au-field"><svg class="ic"><use href="#i-shield"/></svg><input id="emPass" type="password" placeholder="Contraseña (mínimo 6)" autocomplete="current-password"></label>
+      <button class="btn fill au-go" id="emGo">Iniciar sesión</button>
+      <p class="au-msg" id="emMsg"></p>
+      <button class="au-link" id="emForgot">¿Olvidaste tu contraseña?</button>
+    </div>
+    <div class="au-form" id="auPhone">
+      <button class="au-back" data-au="back"><svg class="ic"><use href="#i-back"/></svg>Volver</button>
+      <h1>Con tu número</h1>
+      <p style="text-align:left;margin:8px 0 6px">Te enviaremos un código por SMS.</p>
+      <div id="phStep1">
+        <label class="au-field"><select id="phCc" aria-label="Código de país"></select><input id="phNum" type="tel" placeholder="Número de teléfono" inputmode="tel" autocomplete="tel-national"></label>
+        <button class="btn fill au-go" id="phSend">Enviar código</button>
+      </div>
+      <div id="phStep2" class="hidden">
+        <label class="au-field"><svg class="ic"><use href="#i-shield"/></svg><input id="phCode" type="text" inputmode="numeric" maxlength="6" placeholder="Código de 6 dígitos" autocomplete="one-time-code"></label>
+        <button class="btn fill au-go" id="phVerify">Verificar</button>
+        <button class="au-link" id="phAgain">Cambiar número</button>
+      </div>
+      <p class="au-msg" id="phMsg"></p>
+      <div id="recap"></div>
+    </div>
+  </div>
+</div>
+
 <div id="onb" class="hidden" role="dialog" aria-modal="true" aria-labelledby="onbTitle">
   <div class="oglow"></div>
   <div class="onb-head">
@@ -741,6 +875,9 @@ const A = window.Android || null;
 const REPO = 'EduardYT9088/Musica-NX';
 const PRIVACY_URL = 'https://eduardyt9088.github.io/Musica-NX/privacidad.html';
 const DZ = 'https://api.deezer.com';
+/* ===== Inicio de sesión: pega aquí los datos de tu proyecto de Firebase (ver instrucciones) ===== */
+const FIREBASE = { apiKey: 'AIzaSyDY64MCMPqH5uYmXv_bRYCngNy4i-lrDMw', authDomain: 'nexora-music-32aae.firebaseapp.com', projectId: 'nexora-music-32aae', appId: '1:124788812535:web:86301f78f99b7265bd01f2' };
+const GOOGLE_WEB_CLIENT_ID = '124788812535-0m79bdbti52ghn5tkfcpa0i35v8a7lge.apps.googleusercontent.com';   // "ID de cliente web" (termina en .apps.googleusercontent.com)
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -906,6 +1043,7 @@ function offTracks() { return Object.values(D.offline).sort((a, b) => (b.at || 0
 const offSize = () => Object.values(D.offline).reduce((s, t) => s + (t.size || 0), 0);
 async function toggleDownload(t) {
   if (!t) return;
+  if (!needLogin('descargar música')) return;
   if (!NAT || !A.dlStart) { toast('Las descargas funcionan en la app instalada'); return; }
   if (DLP[t.id] != null) { toast('Ya se está descargando'); return; }
   if (isOff(t.id)) {
@@ -1161,6 +1299,7 @@ window.nxEvent = s => {
   else if (e.type === 'cmd') { if (e.cmd === 'next') next(false); else if (e.cmd === 'prev') prev(); }
   else if (e.type === 'upd') onUpd(e);
   else if (e.type === 'dl') onDl(e);
+  else if (e.type === 'google') onGoogle(e);
   else if (e.type === 'engine') { P.eng.status = e.status; if (e.version) P.eng.version = e.version; updateEngineUI(); }
   else if (e.type === 'account') {
     const was = P.eng.logged; P.eng.logged = !!e.logged; updateEngineUI();
@@ -1585,22 +1724,37 @@ function openSheet(html, onMount) {
   const f = sh.querySelector('input,button'); if (f) setTimeout(() => f.focus({ preventScroll: true }), 120);
 }
 function closeSheet() { $('#sheet').classList.remove('open'); $('#scrim').classList.remove('open'); }
+function sItem(it, k) {
+  return `<button class="si${it.danger ? ' danger' : ''}${it.on ? ' on' : ''}" data-k="${k}"><span class="sq"${it.color ? ` style="background:${it.color}"` : ''}>${ic(it.ic)}</span><span class="lbl">${esc(it.label)}${it.sub ? `<small>${esc(it.sub)}</small>` : ''}</span>${it.chev ? `<svg class="ic chev"><use href="#i-right"/></svg>` : ''}</button>`;
+}
 function actionSheet(head, items) {
-  const html = head + items.map((it, k) => `<button class="si${it.danger ? ' danger' : ''}${it.on ? ' on' : ''}" data-k="${k}">${ic(it.ic)}<span>${esc(it.label)}</span></button>`).join('');
+  const html = head + `<div class="sgroup">${items.map(sItem).join('')}</div>`;
   openSheet(html, sh => sh.onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; closeSheet(); items[+b.dataset.k].fn(); });
 }
 function trackMenu(t, ctx) {
-  const head = `<div class="sh-head">${cvTag(t.cover)}<div class="meta"><div class="t1">${esc(t.title)}</div><div class="t2">${esc(t.artist)}</div></div></div>`;
-  const items = [
-    { ic: isLiked(t.id) ? 'heart-f' : 'heart', label: isLiked(t.id) ? 'Quitar de Tus me gusta' : 'Añadir a Tus me gusta', fn: () => toggleLike(t), on: isLiked(t.id) },
-    { ic: 'plusc', label: 'Añadir a una playlist', fn: () => addToPlaylistSheet(t) },
-    { ic: 'queue', label: 'Añadir a la cola', fn: () => addToQueue(t) }
-  ];
+  const liked = isLiked(t.id), off = isOff(t.id);
+  const items = [{ ic: 'plusc', label: 'Añadir a una playlist', sub: D.pls.length ? D.pls.length + ' playlists' : 'Crea una nueva', color: 'linear-gradient(135deg,#8B5CF6,#6366F1)', chev: true, fn: () => addToPlaylistSheet(t) }];
+  if (t.artistId) items.push({ ic: 'user', label: 'Ver artista', sub: t.artist, color: 'linear-gradient(135deg,#EC4899,#F43F5E)', chev: true, fn: () => { closePlayer(); openArtist(t.artistId); } });
+  if (t.albumId) items.push({ ic: 'album', label: 'Ver álbum', sub: t.album, color: 'linear-gradient(135deg,#F59E0B,#F97316)', chev: true, fn: () => { closePlayer(); openAlbum(t.albumId); } });
+  if (t.artistId) items.push({ ic: 'music', label: 'Todas las canciones del artista', sub: t.artist, color: 'linear-gradient(135deg,#0EA5E9,#22C55E)', chev: true, fn: () => { closePlayer(); openArtistAll(t.artistId); } });
   if (ctx && ctx.pl) items.push({ ic: 'trash', label: 'Quitar de esta playlist', danger: true, fn: () => removeFromPl(ctx.pl, t.id) });
-  if (t.artistId) items.push({ ic: 'user', label: 'Ir al artista', fn: () => { closePlayer(); openArtist(t.artistId); } });
-  if (t.albumId) items.push({ ic: 'album', label: 'Ir al álbum', fn: () => { closePlayer(); openAlbum(t.albumId); } });
-  items.push({ ic: 'share', label: 'Compartir', fn: () => shareTrack(t) });
-  actionSheet(head, items);
+  const html = `<div class="tm-head">${bgi(t.big || t.cover)}${cvTag(t.cover)}<div class="meta"><b>${esc(t.title)}</b><small>${esc(t.artist)}${t.album ? ' · ' + esc(t.album) : ''}</small></div><button class="tm-play" data-q="play" aria-label="Reproducir">${ic('play', 1)}</button></div>
+    <div class="tm-quick">
+      <button class="${liked ? 'on' : ''}" data-q="like">${ic(liked ? 'heart-f' : 'heart')}<span>${liked ? 'Te gusta' : 'Me gusta'}</span></button>
+      <button class="${off ? 'on green' : ''}" data-q="dl">${off ? ic('dlok') : ic('download')}<span>${off ? 'Descargada' : 'Descargar'}</span></button>
+      <button data-q="queue">${ic('queue')}<span>A la cola</span></button>
+      <button data-q="share">${ic('share')}<span>Compartir</span></button>
+    </div>
+    <div class="sgroup">${items.map(sItem).join('')}</div>`;
+  openSheet(html, sh => sh.onclick = e => {
+    const q = e.target.closest('[data-q]'), b = e.target.closest('[data-k]');
+    if (!q && !b) return;
+    closeSheet();
+    if (b) { items[+b.dataset.k].fn(); return; }
+    const k = q.dataset.q;
+    if (k === 'play') playOne(t); else if (k === 'like') toggleLike(t); else if (k === 'dl') toggleDownload(t);
+    else if (k === 'queue') addToQueue(t); else if (k === 'share') shareTrack(t);
+  });
 }
 function addToPlaylistSheet(t) {
   const items = [{ ic: 'plus', label: 'Nueva playlist', fn: () => createPlaylist(pl => addToPl(pl, t)) }]
@@ -1691,7 +1845,7 @@ function fillPage(el, html, title, color) {
   $('.pg-scroll', el).innerHTML = html; $('.ttl', el).textContent = title || '';
   if (color) el.style.setProperty('--hero', color);
 }
-function popPage() { const el = stack.pop(); if (!el) return false; el.classList.remove('in'); setTimeout(() => el.remove(), 280); return true; }
+function popPage() { const el = stack.pop(); if (!el) return false; el.classList.remove('in'); setTimeout(() => el.remove(), 280); if (el._onPop) el._onPop(); return true; }
 function clearPages() { while (stack.length) { const el = stack.pop(); el.remove(); } }
 const pageSkel = () => `<div class="hero"><div class="sk" style="width:min(58vw,250px);height:min(58vw,250px);margin:0 auto 18px;border-radius:26px"></div><div class="sk" style="height:24px;width:60%;margin:0 auto"></div><div class="sk" style="height:14px;width:35%;margin:10px auto 0"></div></div><div class="list" style="margin-top:20px">${skelRows(6)}</div>`;
 function actsBar(o) {
@@ -1759,8 +1913,9 @@ async function openArtist(id) {
       <div class="sh-h" style="margin-top:14px"><h2 class="sec">Populares</h2></div>
       <div class="panel" id="popPanel">${listHTML(tracks, ctx, { rank: true, cls: tracks.length > 5 ? 'lim5' : '' })}</div>
       ${tracks.length > 5 ? `<button class="morebtn" data-act="more5">Ver más</button>` : ''}
-      <button class="allbtn" data-go="artistall:${a.id}"><span class="ico">${ic('music')}</span><div><b>Todas las canciones</b><small>${top.total ? fmtN(top.total) + ' canciones de ' : 'Todo lo de '}${esc(a.name)}</small></div>${ic('right')}</button>
-      ${shelf('Discografía', disc.map(x => ({ go: 'album:' + x.id, img: x.cover_medium, t1: x.title, t2: (x.release_date || '').slice(0, 4) + ' · ' + (x.record_type === 'single' ? 'Sencillo' : x.record_type === 'ep' ? 'EP' : 'Álbum') })))}
+      <button class="allbtn" data-go="artistall:${a.id}"><span class="ico">${ic('music')}</span><div><b>Todas las canciones</b><small>Toda la música de ${esc(a.name)}, álbum por álbum</small></div>${ic('right')}</button>
+      <button class="allbtn" data-go="artistalbums:${a.id}"><span class="ico" style="background:linear-gradient(135deg,#F59E0B,#F97316)">${ic('album')}</span><div><b>Todos los álbumes</b><small>${a.nb_album ? a.nb_album + ' álbumes, EPs y sencillos' : 'Toda su discografía'}</small></div>${ic('right')}</button>
+      ${shelf('Discografía', disc.map(x => ({ go: 'album:' + x.id, img: x.cover_medium, t1: x.title, t2: (x.release_date || '').slice(0, 4) + ' · ' + (x.record_type === 'single' ? 'Sencillo' : x.record_type === 'ep' ? 'EP' : 'Álbum') })), '', 'artistalbums:' + a.id)}
       ${shelf('A los fans también les gusta', (rel.data || []).map(artistCard))}`, a.name);
     domHero(el, a.picture_medium, a.name);
     bindActs(el, tracks, ctx, {
@@ -1822,10 +1977,15 @@ async function openDzPl(id) {
 async function openGenre(id, name) {
   const el = pushPage(pageSkel());
   try {
-    const [ch, ar] = await Promise.all([dz(`/chart/${id}/tracks?limit=30`), dz(`/genre/${id}/artists`).catch(() => ({ data: [] }))]);
+    const [ch, ar] = await Promise.all([dz(`/chart/${id}/tracks?limit=100`), dz(`/genre/${id}/artists`).catch(() => ({ data: [] }))]);
     const tracks = (ch.data || []).map(T); const ctx = { name };
-    fillPage(el, `<div class="hero plain" style="padding-top:calc(var(--st) + 84px);padding-bottom:10px"><h1 style="font-size:36px">${esc(name)}</h1><div class="followers">Lo más escuchado ahora</div></div>
-      ${actsBar({})}<div class="panel">${listHTML(tracks, ctx, { rank: true })}</div>${shelf('Artistas de ' + esc(name), (ar.data || []).slice(0, 15).map(artistCard))}`, name);
+    let lim = 20;
+    fillPage(el, `<div class="hero plain" style="padding-top:calc(var(--st) + 84px);padding-bottom:10px"><h1 style="font-size:36px">${esc(name)}</h1><div class="followers">Lo más escuchado ahora · ${tracks.length} canciones</div></div>
+      ${actsBar({})}${shelf('Artistas de ' + esc(name), (ar.data || []).slice(0, 20).map(artistCard))}
+      <div class="sh-h"><h2 class="sec">Canciones</h2></div><div class="panel" id="gList"></div><button class="vermas" id="gMore">${ic('down')}Ver más</button>`, name);
+    const paint = () => { $('#gList', el).innerHTML = listHTML(tracks, ctx, { rank: true, limit: lim }); $('#gMore', el).classList.toggle('hidden', lim >= tracks.length); };
+    paint();
+    el.addEventListener('click', e => { if (e.target.closest('#gMore')) { lim += 20; paint(); } });
     el.style.setProperty('--hero', hashColor(name));
     bindActs(el, tracks, ctx);
   } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openGenre(id, name); }; }
@@ -1834,8 +1994,8 @@ async function openChart(which) {
   which = which === 'country' ? 'country' : 'world';
   const el = pushPage(pageSkel());
   try {
-    const [w, c] = await Promise.all([topTracks('world'), topTracks('country').catch(() => null)]);
-    const tabs = [['world', 'Mundial', w]].concat(c ? [['country', countryInfo().es, c]] : []);
+    const w = await topTracks('world');
+    const tabs = [['world', 'Mundial', w]];
     const render = k => {
       const d = (tabs.find(x => x[0] === k) || tabs[0])[2], ctx = { name: d.title };
       fillPage(el, `<div class="hero plain" style="padding-top:calc(var(--st) + 84px);padding-bottom:4px"><h1 style="font-size:36px">Top de hoy</h1><div class="followers">${esc(d.title)} · ${d.tracks.length} canciones</div></div>
@@ -1854,35 +2014,114 @@ async function openChart(which) {
     });
   } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openChart(which); }; }
 }
-/* Todas las canciones de un artista */
+/* Toda la discografía de un artista: todos sus álbumes (paginados) */
+const ALBUMS_CACHE = new Map(), SONGS_CACHE = new Map();
+async function allAlbums(id) {
+  if (ALBUMS_CACHE.has(id)) return ALBUMS_CACHE.get(id);
+  let out = [], index = 0;
+  for (let n = 0; n < 6; n++) {
+    const j = await dz(`/artist/${id}/albums?limit=100&index=${index}`);
+    const d = j.data || []; out = out.concat(d); index += d.length;
+    if (d.length < 100 || (j.total && index >= j.total)) break;
+  }
+  const seen = new Set();
+  out = out.filter(x => !seen.has(x.id) && seen.add(x.id)).sort((x, y) => (y.release_date || '').localeCompare(x.release_date || ''));
+  ALBUMS_CACHE.set(id, out);
+  return out;
+}
+const songKey = t => norm(t.title).replace(/[(\[]\s*(feat|ft|with|con|prod)\.?[^)\]]*[)\]]/g, '').replace(/\s+/g, ' ').trim();
+/** Todas las canciones: las de cada álbum + colaboraciones en las que aparece. onProgress(hechos, total, lista) */
+async function allSongs(id, onProgress) {
+  if (SONGS_CACHE.has(id)) return SONGS_CACHE.get(id);
+  const [albums, top1] = await Promise.all([allAlbums(id), dz(`/artist/${id}/top?limit=100`).catch(() => ({ data: [] }))]);
+  let topAll = top1.data || [];
+  if ((top1.total || 0) > 100) { try { topAll = topAll.concat((await dz(`/artist/${id}/top?limit=100&index=100`)).data || []); } catch (e) {} }
+  const map = new Map();
+  const add = (t, date) => {
+    const k = songKey(t);
+    const old = map.get(k);
+    t.date = date || t.date || '';
+    if (!old || (t.rank || 0) > (old.rank || 0)) map.set(k, old && !t.date ? { ...t, date: old.date } : t);
+  };
+  topAll.forEach(x => add({ ...T(x), rank: x.rank || 0 }, x.album && x.album.release_date));
+  onProgress && onProgress(0, albums.length, [...map.values()]);
+  for (let i = 0; i < albums.length; i += 6) {
+    const batch = albums.slice(i, i + 6);
+    const res = await Promise.all(batch.map(al => dz(`/album/${al.id}/tracks?limit=100`).then(j => ({ al, d: j.data || [] })).catch(() => ({ al, d: [] }))));
+    res.forEach(({ al, d }) => d.forEach(x => {
+      const t = T({ ...x, album: { id: al.id, title: al.title, cover_medium: al.cover_medium, cover_xl: al.cover_xl || al.cover_big } });
+      t.rank = x.rank || 0;
+      add(t, al.release_date);
+    }));
+    onProgress && onProgress(Math.min(i + 6, albums.length), albums.length, [...map.values()]);
+    if (i + 6 < albums.length) await new Promise(r => setTimeout(r, 350));   // sin saturar el catálogo
+  }
+  const list = [...map.values()];
+  SONGS_CACHE.set(id, list);
+  return list;
+}
 async function openArtistAll(id) {
   const el = pushPage(pageSkel());
   try {
-    const [a, first] = await Promise.all([dz('/artist/' + id), dz(`/artist/${id}/top?limit=100`)]);
-    let all = first.data || [];
-    if ((first.total || 0) > 100) { try { const more = await dz(`/artist/${id}/top?limit=100&index=100`); all = all.concat(more.data || []); } catch (e) {} }
-    const seen = new Set(), base = [];
-    all.map(T).forEach(t => { const k = norm(t.title).replace(/\(.*?\)|\[.*?\]/g, '').trim(); if (!seen.has(k)) { seen.add(k); base.push(t); } });
+    const a = await dz('/artist/' + id);
     const ctx = { name: 'Todas de ' + a.name };
-    let sort = 'pop';
-    const sorted = () => sort === 'az' ? base.slice().sort((x, y) => x.title.localeCompare(y.title, 'es')) : sort === 'dur' ? base.slice().sort((x, y) => y.dur - x.dur) : base;
+    let sort = 'pop', base = [], loading = true;
+    const sorted = () => sort === 'az' ? base.slice().sort((x, y) => x.title.localeCompare(y.title, 'es'))
+      : sort === 'new' ? base.slice().sort((x, y) => (y.date || '').localeCompare(x.date || ''))
+      : sort === 'dur' ? base.slice().sort((x, y) => y.dur - x.dur)
+      : base.slice().sort((x, y) => (y.rank || 0) - (x.rank || 0));
+    let lim = 60;
     const paint = () => {
       const tr = sorted(); el._tracks = tr;
-      $('#allTabs', el).innerHTML = [['pop', 'Populares'], ['az', 'A – Z'], ['dur', 'Más largas']].map(([k, n]) => `<button class="${sort === k ? 'on' : ''}" data-srt="${k}">${n}</button>`).join('');
-      $('#allList', el).innerHTML = listHTML(tr, ctx, sort === 'pop' ? { rank: true } : {});
+      $('#allCount', el).textContent = `${a.name} · ${base.length} canciones${loading ? '…' : ''}`;
+      $('#allTabs', el).innerHTML = [['pop', 'Populares'], ['new', 'Recientes'], ['az', 'A – Z'], ['dur', 'Más largas']].map(([k, n]) => `<button class="${sort === k ? 'on' : ''}" data-srt="${k}">${n}</button>`).join('');
+      $('#allList', el).innerHTML = listHTML(tr, ctx, { limit: lim, ...(sort === 'pop' ? { rank: true } : {}) });
+      $('#allMore', el).classList.toggle('hidden', tr.length <= lim);
     };
     fillPage(el, `<div class="ahero">${bgi(a.picture_xl)}<div class="ring" style="width:120px;height:120px">${a.picture_xl ? `<img src="${esc(a.picture_xl)}" alt="">` : '<div class="cv"></div>'}</div><h1 style="font-size:28px">Todas las canciones</h1>
-      <div class="followers">${esc(a.name)} · ${base.length} canciones</div></div>
-      ${actsBar({})}<div class="tabs" id="allTabs" style="justify-content:center"></div><div class="panel" id="allList"></div>`, a.name);
+      <div class="followers" id="allCount"></div></div>
+      ${actsBar({})}<div class="tabs" id="allTabs" style="justify-content:center"></div><p class="loadmsg" id="allLoad">Buscando en toda su discografía…</p>
+      <div class="panel" id="allList"></div><button class="vermas hidden" id="allMore">${ic('down')}Ver más</button>`, a.name);
     paint();
     el.addEventListener('click', e => {
-      const b = e.target.closest('[data-srt]'); if (b) { sort = b.dataset.srt; paint(); return; }
+      const b = e.target.closest('[data-srt]'); if (b) { sort = b.dataset.srt; lim = 60; paint(); return; }
+      if (e.target.closest('#allMore')) { lim += 60; paint(); return; }
       const ac = e.target.closest('[data-act]'); if (!ac) return;
       const tr = el._tracks || [];
       if (ac.dataset.act === 'play' && tr.length) playList(tr, P.shuffle ? (Math.random() * tr.length | 0) : 0, ctx);
       if (ac.dataset.act === 'shuf' && tr.length) { P.shuffle = true; S.set('shuf', true); updateModes(); playList(tr, Math.random() * tr.length | 0, ctx); }
     });
+    let lastPaint = 0;
+    base = await allSongs(id, (done, total, list) => {
+      base = list;
+      const m = $('#allLoad', el); if (m) m.textContent = total ? `Revisando álbumes ${done} de ${total}…` : 'Cargando…';
+      if (Date.now() - lastPaint > 1200 || done === total) { lastPaint = Date.now(); paint(); }
+    });
+    loading = false; paint();
+    const m = $('#allLoad', el); if (m) m.remove();
   } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openArtistAll(id); }; }
+}
+async function openArtistAlbums(id) {
+  const el = pushPage(`<div class="hero plain" style="padding-top:calc(var(--st) + 84px)"><div class="sk" style="height:30px;width:60%;margin:0 auto"></div></div><div class="lgrid" style="margin-top:20px">${Array.from({ length: 6 }, () => '<div><div class="sk" style="aspect-ratio:1;border-radius:22px"></div></div>').join('')}</div>`);
+  try {
+    const [a, albums] = await Promise.all([dz('/artist/' + id), allAlbums(id)]);
+    let f = 'all';
+    const kind = x => x.record_type === 'single' ? 'single' : x.record_type === 'ep' ? 'ep' : 'album';
+    const label = { album: 'Álbum', single: 'Sencillo', ep: 'EP' };
+    const paint = () => {
+      const list = albums.filter(x => f === 'all' || kind(x) === f);
+      $('#albTabs', el).innerHTML = [['all', 'Todos', albums.length], ['album', 'Álbumes'], ['ep', 'EPs'], ['single', 'Sencillos']].map(([k, n]) => {
+        const c = k === 'all' ? albums.length : albums.filter(x => kind(x) === k).length;
+        return c ? `<button class="${f === k ? 'on' : ''}" data-af="${k}">${n} · ${c}</button>` : '';
+      }).join('');
+      $('#albGrid', el).innerHTML = list.map(x => `<button class="gi" data-go="album:${x.id}">${cvTag(x.cover_medium || x.cover_big)}<div class="t1">${esc(x.title)}</div><div class="t2">${esc((x.release_date || '').slice(0, 4))} · ${label[kind(x)]}</div></button>`).join('');
+    };
+    fillPage(el, `<div class="ahero">${bgi(a.picture_xl)}<div class="ring" style="width:110px;height:110px">${a.picture_xl ? `<img src="${esc(a.picture_xl)}" alt="">` : '<div class="cv"></div>'}</div><h1 style="font-size:28px">Discografía</h1>
+      <div class="followers">${esc(a.name)} · ${albums.length} lanzamientos</div></div>
+      <div class="tabs" id="albTabs" style="justify-content:center;margin-bottom:10px"></div><div class="lgrid" id="albGrid"></div>`, 'Discografía de ' + a.name);
+    paint();
+    el.addEventListener('click', e => { const b = e.target.closest('[data-af]'); if (b) { f = b.dataset.af; paint(); } });
+  } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openArtistAlbums(id); }; }
 }
 function openPrivacy() {
   const el = pushPage(`<iframe class="doc" src="privacidad.html" title="Política de privacidad"></iframe>`, 'Política de privacidad');
@@ -1905,6 +2144,7 @@ function go(target) {
   else if (type === 'genre') openGenre(id, rest.join(':'));
   else if (type === 'chart') openChart(id);
   else if (type === 'artistall') openArtistAll(id);
+  else if (type === 'artistalbums') openArtistAlbums(id);
   else if (type === 'downloads') openDownloads();
   else if (type === 'hist') openHistory();
   else if (type === 'track') { const t = D.hist.find(x => String(x.id) === id) || (D.plays[id] && D.plays[id].t); if (t) playOne(t); }
@@ -2004,6 +2244,15 @@ async function topTracks(which) {
   const ch = await dz('/chart/0/tracks?limit=50');
   return { tracks: (ch.data || []).map(T), title: 'Top de hoy', id: null };
 }
+/* Playlists donde aparecen los artistas que elegiste */
+async function favPlaylists() {
+  const favs = (D.set.favArtists || []).slice(0, 8);
+  if (!favs.length) return null;
+  const res = await Promise.all(favs.map(a => dz(`/artist/${a.id}/playlists?limit=6`).catch(() => ({ data: [] }))));
+  const seen = new Set(), out = [];
+  for (let k = 0; k < 6; k++) res.forEach(r => { const p = (r.data || [])[k]; if (p && !seen.has(p.id)) { seen.add(p.id); out.push(p); } });
+  return out.length ? { data: out.slice(0, 18), fav: true } : null;
+}
 async function popularArtists() {
   const res = await Promise.all(['/genre/197/artists', '/genre/132/artists', '/genre/116/artists', '/chart/0/artists?limit=40'].map(u => dz(u).catch(() => ({ data: [] }))));
   const seen = new Set(), out = [];
@@ -2036,9 +2285,9 @@ async function renderHome() {
   body.innerHTML = `<div class="heros"><div class="sk" style="flex:none;width:min(84vw,420px);height:190px;border-radius:26px"></div></div>` + contHTML() + `<div class="list" style="margin-top:18px">${skelRows(3)}</div>` + skelShelf();
   try {
     const [wt, ct, al, arList, pl] = await Promise.all([
-      topTracks('world'), topTracks('country').catch(() => null), dz('/chart/0/albums?limit=20'), popularArtists(), dz('/chart/0/playlists?limit=15').catch(() => ({ data: [] }))
+      topTracks('world'), null, dz('/chart/0/albums?limit=20'), popularArtists(), favPlaylists().catch(() => null).then(x => x || dz('/chart/0/playlists?limit=15').catch(() => ({ data: [] })))
     ]);
-    const tracks = wt.tracks, ctry = ct && ct.tracks && ct.tracks.length ? ct : null;
+    const tracks = wt.tracks, favPl = !!(D.set.favArtists && D.set.favArtists.length && pl && pl.fav);
     const hist = D.hist.slice(0, 12), als = al.data || [], ars = arList || [], pls = pl.data || [];
     const offN = Object.keys(D.offline).length;
     const heros = [];
@@ -2050,12 +2299,11 @@ async function renderHome() {
     body.innerHTML = heroHTML(heros) + contHTML() +
       `<div id="homeFav" data-sec="songs">${favHTML()}</div>` +
       `<section data-sec="songs"><div class="sh-h"><h2 class="sec">Top de hoy · Mundial</h2><button data-go="chart:world">Ver todo${ic('right')}</button></div><div class="panel">${listHTML(tracks, { name: 'Top Mundial' }, { rank: true, limit: 5 })}</div></section>` +
-      (ctry ? `<section data-sec="songs"><div class="sh-h"><h2 class="sec">Lo más sonado en ${esc(countryInfo().es)}</h2><button data-go="chart:country">Ver todo${ic('right')}</button></div><div class="panel">${listHTML(ctry.tracks, { name: ctry.title }, { rank: true, limit: 5 })}</div></section>` : '') +
       (offN ? `<section data-sec="songs"><button class="offcard" data-go="downloads">${ic('download')}<div><b>Tus descargas</b><small>${offN} canciones para escuchar sin internet</small></div></button></section>` : '') +
       shelf('Escuchado recientemente', hist.map(t => ({ go: 'track:' + t.id, img: t.cover, t1: t.title, t2: t.artist })), 'songs', 'hist') +
       shelf('Álbumes del momento', (al.data || []).map(albumCard), 'albums') +
       shelf('Artistas populares', ars.slice(0, 20).map(artistCard), 'artists') +
-      shelf('Playlists destacadas', (pl.data || []).map(p => ({ go: 'dzpl:' + p.id, img: p.picture_medium, t1: p.title, t2: (p.nb_tracks || '') + ' canciones' })), 'pls') +
+      shelf(favPl ? 'Playlists de tus artistas' : 'Playlists destacadas', (pl.data || []).map(p => ({ go: 'dzpl:' + p.id, img: p.picture_medium, t1: p.title, t2: (p.nb_tracks ? p.nb_tracks + ' canciones' : (p.user && p.user.name) || 'Playlist') })), 'pls') +
       shelf('Más canciones para ti', tracks.slice(5, 20).map(t => ({ go: 'album:' + t.albumId, img: t.cover, t1: t.title, t2: t.artist })), 'albums') +
       `<div class="foot"><b>Música NX</b><br>© 2026 Nexora · Eduard Gamer</div>`;
     homeLoaded = true; applyHomeFilter(); bindHeroDots();
@@ -2074,17 +2322,50 @@ function applyHomeFilter() {
 
 /* ---------- Buscar ---------- */
 let searchTok = 0, searchF = 'all', lastRes = null;
+const GF = { list: [], shown: 0, data: {}, lim: {} };
 async function renderSearchIdle() {
   const body = $('#searchBody');
   const rs = D.rs.length ? `<div class="sh-h" style="margin-top:4px"><h2 class="sec" style="font-size:17px">Búsquedas recientes</h2><button data-clear-rs>Borrar</button></div>
     ${D.rs.slice(0, 6).map((q, k) => `<button class="rs" data-rs="${k}">${ic('clock')}<span class="t1" style="flex:1">${esc(q)}</span>${ic('right')}</button>`).join('')}` : '';
-  body.innerHTML = rs + `<div class="sh-h"><h2 class="sec" style="font-size:17px">Explorar géneros</h2></div><div class="genres">${Array.from({ length: 6 }, () => '<div class="sk" style="height:96px"></div>').join('')}</div>`;
+  body.innerHTML = rs + `<div class="sh-h"><h2 class="sec" style="font-size:17px">Explorar géneros</h2></div><div class="genres">${Array.from({ length: 6 }, () => '<div class="sk" style="height:104px;border-radius:22px"></div>').join('')}</div>
+    <div id="genFeed"></div><button class="vermas big hidden" id="genMore">${ic('down')}Ver más</button>`;
   try {
     const g = await dz('/genre');
     if ($('#q').value) return;
-    const html = (g.data || []).filter(x => x.id !== 0).map(x => `<button class="genre" data-go="genre:${x.id}:${esc(x.name)}" style="background:linear-gradient(135deg,${hashColor(x.name).replace('30%)', '48%)')},${hashColor(x.name + 'x').replace('30%)', '30%)')})"><span>${esc(x.name)}</span>${x.picture_medium ? `<img src="${esc(x.picture_medium)}" alt="" loading="lazy">` : ''}</button>`).join('');
+    GF.list = (g.data || []).filter(x => x.id !== 0); GF.shown = 0;
+    const html = GF.list.map(x => `<button class="genre" data-go="genre:${x.id}:${esc(x.name)}" style="background:linear-gradient(135deg,${hashColor(x.name).replace('30%)', '48%)')},${hashColor(x.name + 'x').replace('30%)', '30%)')})"><span>${esc(x.name)}</span>${x.picture_medium ? `<img src="${esc(x.picture_medium)}" alt="" loading="lazy">` : ''}</button>`).join('');
     const box = $('.genres', body); if (box) box.innerHTML = html;
+    moreGenres();
   } catch (e) { const box = $('.genres', body); if (box) box.outerHTML = errBox(e.message, 'search'); }
+}
+/** Agrega 2 géneros más con su música (botón Ver más) */
+async function moreGenres() {
+  const feed = $('#genFeed'), btn = $('#genMore'); if (!feed) return;
+  const next = GF.list.slice(GF.shown, GF.shown + 2); GF.shown += next.length;
+  btn.classList.add('hidden');
+  for (const g of next) {
+    const sec = document.createElement('section'); sec.className = 'gsec'; sec.dataset.gid = g.id;
+    sec.innerHTML = `<div class="gh"><span class="gdot">${g.picture_medium ? `<img src="${esc(g.picture_medium)}" alt="">` : ''}</span><h2>${esc(g.name)}</h2><button data-go="genre:${g.id}:${esc(g.name)}">Abrir${ic('right')}</button></div><div class="list">${skelRows(3)}</div>`;
+    feed.appendChild(sec);
+  }
+  await Promise.all(next.map(async g => {
+    const sec = feed.querySelector(`[data-gid="${g.id}"]`);
+    try {
+      const [ch, ar] = await Promise.all([GF.data[g.id] ? { data: null } : dz(`/chart/${g.id}/tracks?limit=50`), dz(`/genre/${g.id}/artists`).catch(() => ({ data: [] }))]);
+      if (!GF.data[g.id]) GF.data[g.id] = (ch.data || []).map(T);
+      GF.lim[g.id] = 5;
+      sec.innerHTML = sec.querySelector('.gh').outerHTML + `<div class="panel" data-gl="${g.id}"></div><button class="vermas" data-gm="${g.id}">${ic('down')}Ver más canciones de ${esc(g.name)}</button>` +
+        ((ar.data || []).length ? `<div class="hscroll" style="margin-top:14px">${(ar.data || []).slice(0, 12).map(x => card(artistCard(x))).join('')}</div>` : '');
+      paintGenre(g.id);
+    } catch (e) { sec.remove(); }
+  }));
+  btn.classList.toggle('hidden', GF.shown >= GF.list.length);
+}
+function paintGenre(id) {
+  const tr = GF.data[id] || [], lim = GF.lim[id] || 5, box = document.querySelector(`[data-gl="${id}"]`); if (!box) return;
+  const g = GF.list.find(x => String(x.id) === String(id)) || { name: '' };
+  box.innerHTML = listHTML(tr, { name: g.name }, { rank: true, limit: lim });
+  const b = document.querySelector(`[data-gm="${id}"]`); if (b) b.classList.toggle('hidden', lim >= tr.length);
 }
 function saveRecentSearch(q) { q = q.trim(); if (q.length < 2) return; D.rs = [q, ...D.rs.filter(x => norm(x) !== norm(q))].slice(0, 10); save('rs'); }
 async function doSearch(q) {
@@ -2178,7 +2459,7 @@ function bannerSheet() {
 
 /* ---------- Foto de perfil ---------- */
 let photoMode = 'avatar';
-function pickPhoto(mode) { photoMode = mode === 'banner' ? 'banner' : 'avatar'; const i = $('#photoIn'); i.value = ''; i.click(); }
+function pickPhoto(mode) { if (!needLogin(mode === 'banner' ? 'poner una imagen de fondo' : 'poner foto de perfil')) return; photoMode = mode === 'banner' ? 'banner' : 'avatar'; const i = $('#photoIn'); i.value = ''; i.click(); }
 function profileSheet() {
   const items = [{ ic: 'camera', label: D.set.photo ? 'Cambiar foto de perfil' : 'Añadir foto de perfil', fn: pickPhoto }];
   if (D.set.photo) items.push({ ic: 'trash', label: 'Quitar foto', danger: true, fn: () => { delete D.set.photo; save('set'); renderMe(); paintAvatars(); toast('Foto quitada'); } });
@@ -2219,6 +2500,7 @@ function renderMe() {
   const sw = Object.entries(ACCENTS).map(([k, v]) => `<button data-acc="${k}" class="${D.set.accent === k ? 'on' : ''}" style="background:linear-gradient(135deg,${v[0]},${v[1]})" aria-label="Color ${v[2]}"></button>`).join('');
   $('#meBody').innerHTML = `<div class="banner" id="meBanner"></div><button class="bn-edit" id="bnEdit">${ic('palette')}Fondo</button><div class="me-head"><button class="me-av" id="meAv" aria-label="Cambiar foto de perfil"><span class="avatar">${avatarHTML()}</span><span class="cam">${ic('camera')}</span></button><h2>${esc(D.set.name || 'Tu perfil')}</h2>
     <button class="btn" id="meEdit">${ic('edit')}Editar perfil</button></div>
+    ${acctHTML()}
     <div class="stats"><div class="stat"><b>${fmtN(D.stats.plays)}</b><small>Reproducciones</small></div><div class="stat"><b>${fmtN(mins)}</b><small>Minutos</small></div>
       <div class="stat"><b>${D.likes.length}</b><small>Me gusta</small></div><div class="stat"><b>${D.pls.length}</b><small>Playlists</small></div></div>
     ${top.length ? `<div class="sh-h" style="margin-top:8px"><h2 class="sec">Lo que más escuchas</h2></div>${listHTML(top, { name: 'Lo que más escuchas' }, { rank: true })}` : ''}
@@ -2247,6 +2529,7 @@ function renderMe() {
     </div>
     <div class="foot"><b>Música NX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
   $('#meEdit').onclick = profileSheet;
+  const ab = $('#acctBtn'); if (ab) ab.onclick = () => isSigned() ? logoutSheet() : openAuth(false);
   paintBanner($('#meBanner'));
   $('#bnEdit').onclick = bannerSheet;
   $('#meBanner').onclick = bannerSheet;
@@ -2327,7 +2610,9 @@ $('#qClear').onclick = e => { e.preventDefault(); $('#q').value = ''; $('#q').di
 $('#searchBody').addEventListener('click', e => {
   const sf = e.target.closest('[data-sf]'); if (sf) { searchF = sf.dataset.sf; renderResults(); return; }
   const rs = e.target.closest('[data-rs]'); if (rs) { const q = D.rs[+rs.dataset.rs]; $('#q').value = q; $('#qClear').classList.remove('hidden'); doSearch(q); return; }
-  if (e.target.closest('[data-clear-rs]')) { D.rs = []; save('rs'); renderSearchIdle(); }
+  if (e.target.closest('[data-clear-rs]')) { D.rs = []; save('rs'); renderSearchIdle(); return; }
+  if (e.target.closest('#genMore')) { moreGenres(); return; }
+  const gm = e.target.closest('[data-gm]'); if (gm) { const id = gm.dataset.gm; GF.lim[id] = (GF.lim[id] || 5) + 10; paintGenre(id); }
 });
 
 /* reproductor */
@@ -2377,6 +2662,7 @@ $('#scrim').onclick = closeSheet;
 /* botón Atrás de Android */
 window.appBack = () => {
   if (U.open) { if (U.must) return true; U.open = false; $('#upd').classList.add('hidden'); return true; }
+  if (AU.open) { if (AU.view !== 'main') { auShow('main'); return true; } if (!AU.must) closeAuth(); return true; }
   if (ONB.open) { if (!ONB.must) closeOnb(); return true; }
   if ($('#sheet').classList.contains('open')) { closeSheet(); return true; }
   if (playerOpen) { closePlayer(); return true; }
@@ -2393,6 +2679,168 @@ window.appOnPause = () => {
   // Al salir de la app la música sigue con el motor NX (con la pantalla apagada y en la notificación)
   if (NAT && P.cur && P.src === 'yt' && P.nat && !P.userPaused) { if (P.video) setVideo(false); handoffToNative(true); }
 };
+
+/* ---------- Inicio de sesión (Firebase) ---------- */
+const AU = { open: false, must: true, view: 'main', mode: 'in', fb: null, confirm: null, busy: false };
+const isSigned = () => !!(D.set.auth && !D.set.auth.guest && D.set.auth.uid);
+const fbReady = () => !!(FIREBASE.apiKey && FIREBASE.projectId);
+const COUNTRIES = [['+57', 'Colombia'], ['+52', 'México'], ['+1', 'EE. UU./Canadá'], ['+54', 'Argentina'], ['+56', 'Chile'], ['+51', 'Perú'], ['+593', 'Ecuador'], ['+58', 'Venezuela'], ['+591', 'Bolivia'], ['+595', 'Paraguay'], ['+598', 'Uruguay'], ['+507', 'Panamá'], ['+506', 'Costa Rica'], ['+502', 'Guatemala'], ['+503', 'El Salvador'], ['+504', 'Honduras'], ['+505', 'Nicaragua'], ['+1', 'Rep. Dominicana'], ['+53', 'Cuba'], ['+34', 'España'], ['+55', 'Brasil']];
+/** Pide iniciar sesión para funciones de cuenta. Devuelve true si ya hay sesión. */
+function needLogin(what) {
+  if (isSigned()) return true;
+  openSheet(`<div class="lock"><span class="sq">${ic('lock')}</span><b>Inicia sesión para usar esta función</b><p>Para ${esc(what)} necesitas una cuenta. Como invitado puedes escuchar música, pero no descargar ni poner foto de perfil.</p>
+    <button class="btn fill" data-lk="go">Iniciar sesión</button><button class="btn" data-lk="no" style="margin-top:10px;background:transparent;border:0;color:var(--mut)">Ahora no</button></div>`, sh => sh.onclick = e => {
+    const b = e.target.closest('[data-lk]'); if (!b) return; closeSheet(); if (b.dataset.lk === 'go') openAuth(false);
+  });
+  return false;
+}
+function acctHTML() {
+  const a = D.set.auth || {};
+  if (isSigned()) return `<div class="acct"><span class="mi" style="padding:0;border:0;width:auto"><span class="ico" style="background:${a.provider === 'google' ? 'linear-gradient(135deg,#4285F4,#34A853)' : a.provider === 'phone' ? 'linear-gradient(135deg,#22C55E,#0EA5E9)' : 'linear-gradient(135deg,#8B5CF6,#EC4899)'}">${ic(a.provider === 'phone' ? 'phone' : a.provider === 'google' ? 'user' : 'mail')}</span></span><div class="meta"><div class="t1">Sesión iniciada</div><small>${esc(a.email || a.phone || '')}</small></div><button class="btn" id="acctBtn">${ic('logout')}Salir</button></div>`;
+  return `<div class="acct"><span class="mi" style="padding:0;border:0;width:auto"><span class="ico" style="background:#475569">${ic('lock')}</span></span><div class="meta"><div class="t1">Modo invitado</div><small>Inicia sesión para descargar y poner tu foto</small></div><button class="btn fill" id="acctBtn">Entrar</button></div>`;
+}
+function openAuth(must) {
+  AU.must = must; AU.open = true;
+  $('#auth').classList.remove('hidden');
+  $('.au-guest').classList.toggle('hidden', !must && !!D.set.auth);
+  auShow('main'); auMsg('#auMsg', '');
+  closeSheet(); if (playerOpen) closePlayer();
+}
+function closeAuth() { AU.open = false; $('#auth').classList.add('hidden'); }
+function auShow(v) { AU.view = v; $('#auMain').classList.toggle('on', v === 'main'); $('#auEmail').classList.toggle('on', v === 'email'); $('#auPhone').classList.toggle('on', v === 'phone'); $('#auth').scrollTop = 0; }
+function auMsg(sel, m, err) { const e = $(sel); if (!e) return; e.textContent = m || ''; e.classList.toggle('err', !!err); }
+function loadScript(src) { return new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('sin conexión')); document.head.appendChild(s); }); }
+async function fb() {
+  if (AU.fb) return AU.fb;
+  if (!fbReady()) throw new Error('noconfig');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE);
+  AU.fb = firebase.auth(); AU.fb.languageCode = 'es';
+  return AU.fb;
+}
+function fbErr(e) {
+  const c = (e && (e.code || e.message)) || '';
+  if (c === 'noconfig') return 'El inicio de sesión aún no está configurado en esta versión. Entra como invitado por ahora.';
+  const M = { 'auth/invalid-email': 'El correo no es válido.', 'auth/user-not-found': 'No existe una cuenta con ese correo.', 'auth/wrong-password': 'La contraseña no es correcta.', 'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/email-already-in-use': 'Ya existe una cuenta con ese correo. Inicia sesión.', 'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.', 'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos.',
+    'auth/network-request-failed': 'Sin conexión. Revisa tu internet.', 'auth/invalid-phone-number': 'El número no es válido.', 'auth/invalid-verification-code': 'El código no es correcto.', 'auth/code-expired': 'El código venció. Pide uno nuevo.',
+    'auth/billing-not-enabled': 'El inicio con teléfono no está activo en este momento. Usa Google o correo.', 'auth/operation-not-allowed': 'Este método de inicio de sesión no está activado.', 'auth/quota-exceeded': 'Se alcanzó el límite de SMS por hoy. Usa Google o correo.' };
+  return M[c] || 'No se pudo iniciar sesión. Intenta de nuevo.';
+}
+function signedIn(u, provider, extra = {}) {
+  D.set.auth = { uid: u.uid, provider, email: u.email || extra.email || '', phone: u.phoneNumber || '', name: u.displayName || extra.name || '', at: Date.now() };
+  if (!D.set.name && D.set.auth.name) D.set.name = D.set.auth.name;
+  const photo = u.photoURL || extra.photo;
+  if (!D.set.photo && photo) D.set.photo = photo;
+  save('set'); closeAuth(); vib(20);
+  toast('¡Hola' + (D.set.name ? ', ' + D.set.name.split(' ')[0] : '') + '! Sesión iniciada');
+  paintAvatars(); renderHomeQuick(); if (curTab === 'me') renderMe();
+  if (!D.set.onboarded) setTimeout(() => openOnb(true), 350);
+}
+function enterGuest() {
+  D.set.auth = { guest: true, at: Date.now() }; save('set'); closeAuth();
+  toast('Entraste como invitado');
+  if (curTab === 'me') renderMe();
+  if (!D.set.onboarded) setTimeout(() => openOnb(true), 350);
+}
+async function authGoogle() {
+  if (!fbReady() || !GOOGLE_WEB_CLIENT_ID) { auMsg('#auMsg', fbErr({ code: 'noconfig' }), true); return; }
+  if (!A || !A.googleSignIn) { auMsg('#auMsg', 'El inicio con Google funciona en la app instalada.', true); return; }
+  auMsg('#auMsg', 'Abriendo Google…'); A.googleSignIn(GOOGLE_WEB_CLIENT_ID);
+}
+async function onGoogle(e) {
+  if (!e.ok) { auMsg('#auMsg', e.msg === 'cancel' ? 'Inicio de sesión cancelado.' : e.msg === 'noconfig' ? fbErr({ code: 'noconfig' }) : 'No se pudo iniciar con Google. Intenta de nuevo.', e.msg !== 'cancel'); return; }
+  try {
+    const auth = await fb();
+    const cred = await auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(e.token));
+    signedIn(cred.user, 'google', { email: e.email, name: e.name, photo: e.photo });
+  } catch (x) { auMsg('#auMsg', fbErr(x), true); }
+}
+function emMode(m) {
+  AU.mode = m;
+  $$('#auEmail [data-em]').forEach(b => b.classList.toggle('on', b.dataset.em === m));
+  $('#emNameF').classList.toggle('hidden', m !== 'up');
+  $('#emGo').textContent = m === 'up' ? 'Crear cuenta' : 'Iniciar sesión';
+  $('#emForgot').classList.toggle('hidden', m === 'up');
+  auMsg('#emMsg', '');
+}
+async function authEmail() {
+  if (AU.busy) return;
+  const mail = $('#emMail').value.trim(), pass = $('#emPass').value, name = $('#emName').value.trim();
+  if (!/^\S+@\S+\.\S+$/.test(mail)) { auMsg('#emMsg', 'Escribe un correo válido.', true); return; }
+  if (pass.length < 6) { auMsg('#emMsg', 'La contraseña debe tener al menos 6 caracteres.', true); return; }
+  AU.busy = true; $('#emGo').disabled = true; auMsg('#emMsg', AU.mode === 'up' ? 'Creando tu cuenta…' : 'Entrando…');
+  try {
+    const auth = await fb();
+    let cred;
+    if (AU.mode === 'up') { cred = await auth.createUserWithEmailAndPassword(mail, pass); if (name) { try { await cred.user.updateProfile({ displayName: name }); } catch (x) {} } }
+    else cred = await auth.signInWithEmailAndPassword(mail, pass);
+    signedIn(cred.user, 'email', { name });
+  } catch (x) { auMsg('#emMsg', fbErr(x), true); }
+  AU.busy = false; $('#emGo').disabled = false;
+}
+async function authForgot() {
+  const mail = $('#emMail').value.trim();
+  if (!/^\S+@\S+\.\S+$/.test(mail)) { auMsg('#emMsg', 'Escribe tu correo arriba y vuelve a tocar aquí.', true); return; }
+  try { const auth = await fb(); await auth.sendPasswordResetEmail(mail); auMsg('#emMsg', 'Te enviamos un correo para cambiar tu contraseña.'); }
+  catch (x) { auMsg('#emMsg', fbErr(x), true); }
+}
+async function phoneSend() {
+  if (AU.busy) return;
+  const num = $('#phNum').value.replace(/[^0-9]/g, ''), cc = $('#phCc').value;
+  if (num.length < 6) { auMsg('#phMsg', 'Escribe tu número completo.', true); return; }
+  AU.busy = true; $('#phSend').disabled = true; auMsg('#phMsg', 'Enviando código…');
+  try {
+    const auth = await fb();
+    if (!AU.recap) AU.recap = new firebase.auth.RecaptchaVerifier('recap', { size: 'invisible' });
+    AU.confirm = await auth.signInWithPhoneNumber(cc + num, AU.recap);
+    $('#phStep1').classList.add('hidden'); $('#phStep2').classList.remove('hidden');
+    auMsg('#phMsg', 'Te enviamos un código por SMS al ' + cc + ' ' + num + '.');
+    setTimeout(() => $('#phCode').focus(), 200);
+  } catch (x) {
+    auMsg('#phMsg', fbErr(x), true);
+    try { AU.recap && AU.recap.clear(); } catch (y) {} AU.recap = null; $('#recap').innerHTML = '';
+  }
+  AU.busy = false; $('#phSend').disabled = false;
+}
+async function phoneVerify() {
+  if (AU.busy || !AU.confirm) return;
+  const code = $('#phCode').value.replace(/[^0-9]/g, '');
+  if (code.length < 6) { auMsg('#phMsg', 'Escribe los 6 dígitos del código.', true); return; }
+  AU.busy = true; $('#phVerify').disabled = true; auMsg('#phMsg', 'Verificando…');
+  try { const cred = await AU.confirm.confirm(code); signedIn(cred.user, 'phone'); }
+  catch (x) { auMsg('#phMsg', fbErr(x), true); }
+  AU.busy = false; $('#phVerify').disabled = false;
+}
+function logoutSheet() {
+  actionSheet(`<div class="sh-title">¿Cerrar sesión?</div><p class="sh-p">Tus playlists, me gusta y descargas se quedan en este teléfono. Para descargar y cambiar tu foto tendrás que volver a entrar.</p>`, [
+    { ic: 'logout', label: 'Cerrar sesión', danger: true, fn: async () => {
+      try { if (AU.fb || fbReady()) { const a = await fb(); await a.signOut(); } } catch (e) {}
+      try { A && A.googleSignOut && A.googleSignOut(); } catch (e) {}
+      D.set.auth = null; save('set'); renderMe(); toast('Sesión cerrada'); openAuth(true);
+    } },
+    { ic: 'back', label: 'Cancelar', fn: () => {} }]);
+}
+$('#phCc').innerHTML = COUNTRIES.map(([c, n]) => `<option value="${c}">${c} ${n}</option>`).join('');
+$('#auth').addEventListener('click', e => {
+  const b = e.target.closest('[data-au]');
+  if (b) {
+    const k = b.dataset.au;
+    if (k === 'google') authGoogle();
+    else if (k === 'email') { auShow('email'); emMode('in'); }
+    else if (k === 'phone') { auShow('phone'); $('#phStep1').classList.remove('hidden'); $('#phStep2').classList.add('hidden'); auMsg('#phMsg', ''); }
+    else if (k === 'guest') enterGuest();
+    else if (k === 'back') auShow('main');
+    else if (k === 'priv') { closeAuth(); openPrivacy(); setTimeout(() => { const el = stack[stack.length - 1]; if (el) el._onPop = () => openAuth(AU.must); }, 50); }
+    return;
+  }
+  const em = e.target.closest('[data-em]'); if (em) emMode(em.dataset.em);
+});
+$('#emGo').onclick = authEmail; $('#emForgot').onclick = authForgot;
+$('#emPass').addEventListener('keydown', e => { if (e.key === 'Enter') authEmail(); });
+$('#phSend').onclick = phoneSend; $('#phVerify').onclick = phoneVerify;
+$('#phAgain').onclick = () => { $('#phStep1').classList.remove('hidden'); $('#phStep2').classList.add('hidden'); auMsg('#phMsg', ''); };
 
 /* ---------- Elegir artistas favoritos ---------- */
 const ONB = { open: false, must: true, sel: new Map(), pool: [], view: [], tok: 0 };
@@ -2434,8 +2882,7 @@ async function finishOnb() {
   save('set', 'artists');
   closeOnb(); vib(20);
   toast('¡Listo! Preparamos tu música con tus artistas');
-  await buildForYou();
-  if (curTab === 'home') applyHomeFilter();
+  renderHome();
   if (curTab === 'me') renderMe();
 }
 let onbT;
@@ -2596,7 +3043,8 @@ function hideSplash() {
   setTimeout(() => $('#splash').classList.add('out'), w);
   if (!updChecked) {
     updChecked = true;
-    if (!D.set.onboarded) setTimeout(() => openOnb(true), w);
+    if (!D.set.auth) setTimeout(() => openAuth(true), w);
+    else if (!D.set.onboarded) setTimeout(() => openOnb(true), w);
     setTimeout(() => checkUpdate(false), w + 400);
   }
 }
