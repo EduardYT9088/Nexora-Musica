@@ -1,4 +1,6 @@
 Versión: 1.7.0
+- Inicio con música latina: reguetón, urbano y vallenato (Bad Bunny, Anuel, Karol G, Paulo Londra, Camilo, Yatra, Diomedes, Poncho Zuleta y más) junto a tus artistas
+- Desliza hacia abajo en Inicio para recargar: salen otros álbumes, playlists, artistas y canciones
 - Copia en la nube: tus me gusta, playlists, álbumes, artistas, historial y perfil aparecen en cualquier celular donde inicies sesión
 - Se guarda sola unos segundos después de cada cambio; en Perfil → Copia en la nube ves el estado
 - Se quitó la opción "Cuenta de YouTube" del perfil (ya no hace falta iniciar sesión en YouTube)
