@@ -1,6 +1,6 @@
 Versión: 1.7.0
 - Inicio con música latina: reguetón, urbano y vallenato (Bad Bunny, Anuel, Karol G, Paulo Londra, Camilo, Yatra, Diomedes, Poncho Zuleta y más) junto a tus artistas
-- Desliza hacia abajo en Inicio para recargar: salen otros álbumes, playlists, artistas y canciones (el gesto es suave y no se activa al mover el carrusel)
+- Para recargar Inicio desliza hacia abajo desde "¿Qué suena hoy?": todo baja con el dedo y el círculo gira centrado hasta que carga lo nuevo
 - Nuevo botón "Configuración" en Perfil: ahí están el color, la nube, las descargas, la reproducción y más
 - Copia en la nube: tus me gusta, playlists, álbumes, artistas, historial y perfil aparecen en cualquier celular donde inicies sesión
 - Se guarda sola unos segundos después de cada cambio; en Perfil → Copia en la nube ves el estado

@@ -532,15 +532,17 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .oa .ring .cv{width:100%;height:100%;border-radius:50%}
 .cv.ini{display:flex;align-items:center;justify-content:center;container-type:inline-size}
 .cv.ini::before{display:none}
-#ptr{position:fixed;left:50%;top:calc(var(--st) + 6px);z-index:30;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(30,30,44,.94);border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.45);transform:translate(-50%,-80px);opacity:0;transition:transform .3s,opacity .3s;pointer-events:none;color:var(--mut)}
-#ptr>*{grid-area:1/1}
-#ptr .ic{width:20px;height:20px;transform:rotate(var(--rot,0deg));transition:transform .15s}
-#ptr .ring{display:none;width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(255,255,255,.15);border-top-color:var(--acc);animation:spin .75s linear infinite}
-#ptr.drag{transition:none;opacity:1}
-#ptr.ready{color:var(--acc)}
-#ptr.spin{opacity:1}
-#ptr.spin .ic{display:none}
-#ptr.spin .ring{display:block}
+#v-home.pulling>*{transform:translateY(var(--pull,0px))}
+#v-home.ptr-anim>*{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#ptr{position:fixed;left:50%;top:calc(var(--st) + 14px);z-index:30;width:34px;height:34px;margin-left:-17px;pointer-events:none;opacity:0;transform:translateY(calc(var(--pull,0px) * .5 - 30px)) scale(.6);transition:opacity .25s,transform .3s cubic-bezier(.2,.8,.2,1)}
+#ptr svg{display:block;width:100%;height:100%;overflow:visible}
+#ptr circle{fill:none;stroke-width:3.2;stroke-linecap:round}
+#ptr .bg{stroke:rgba(255,255,255,.1)}
+#ptr .arc{stroke:var(--acc);transform-box:view-box;transform-origin:20px 20px;transform:rotate(var(--rot,-90deg))}
+#ptr.drag{opacity:1;transform:translateY(calc(var(--pull,0px) * .5 - 30px)) scale(1);transition:none}
+#ptr.spin{opacity:1;transform:translateY(2px) scale(1)}
+#ptr.spin .arc{stroke-dasharray:28 94.25;animation:ptrspin .8s linear infinite}
+@keyframes ptrspin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 #homeBody.fadein{animation:fadein .45s ease}
 @keyframes fadein{from{opacity:.25}}
 .bn-edit.bn-set{right:auto;left:16px}
@@ -990,7 +992,7 @@ async function getJSON(url) {
 const memo = new Map();
 function dz(path) {
   if (memo.has(path)) return memo.get(path);
-  const p = getJSON(DZ + path).then(j => { if (j && j.error) throw new Error(j.error.message || 'Deezer'); return j; });
+  const p = getJSON(DZ + path).then(j => { if (j && j.error) throw new Error(j.error.message || 'Catálogo'); return j; });
   memo.set(path, p); p.catch(() => memo.delete(path));
   return p;
 }
@@ -1937,7 +1939,7 @@ function aboutSheet() {
     <h3>Música NX</h3><p>Versión ${esc(appVersion())}</p>
     <p>Tu música, con canciones completas, videos y letras sincronizadas en una interfaz propia.</p>
     <p class="copy">© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</p>
-    <p style="font-size:12px">Datos musicales: Deezer API · Reproducción: motor yt-dlp y reproductor oficial de YouTube · Letras: LRCLIB.<br>Música NX no está afiliada a Deezer, YouTube ni Spotify.</p></div>
+    <p style="font-size:12px">Reproducción: motor NX y reproductor oficial de YouTube · Letras: LRCLIB.<br>Música NX no está afiliada a YouTube ni a Spotify.</p></div>
     <button class="si" data-a="priv">${ic('shield')}<span>Política de privacidad</span></button>
     <button class="si" data-a="upd">${ic('update')}<span>Buscar actualizaciones</span></button>`, sh => sh.onclick = e => {
     const b = e.target.closest('[data-a]'); if (!b) return; closeSheet();
@@ -2088,7 +2090,7 @@ async function openDzPl(id) {
     addRecent({ type: 'dzpl', id: pl.id, title: pl.title, img: pl.picture_medium, sub: 'Playlist' });
     const ctx = { name: pl.title };
     fillPage(el, `<div class="hero">${bgi(pl.picture_xl || pl.picture_big)}${cvTag(pl.picture_xl || pl.picture_big, 'big')}<h1>${esc(pl.title)}</h1>
-      ${pl.description ? `<div class="followers">${esc(pl.description)}</div>` : ''}<div class="chipsrow"><span>Playlist</span><span>${fmtN(pl.fans)} fans</span><span>${tracks.length} canciones</span></div></div>
+      ${pl.description && !/deezer/i.test(pl.description) ? `<div class="followers">${esc(pl.description)}</div>` : ''}<div class="chipsrow"><span>Playlist</span><span>${fmtN(pl.fans)} fans</span><span>${tracks.length} canciones</span></div></div>
       ${actsBar({})}<div class="panel">${listHTML(tracks, ctx)}</div>`, pl.title);
     domHero(el, pl.picture_medium, pl.title);
     bindActs(el, tracks, ctx);
@@ -2410,7 +2412,7 @@ async function latinMix() {
     const a = picks[k];
     const full = (al.data || []).filter(x => x.record_type !== 'single'), any = al.data || [];
     shuffleArr((full.length >= 2 ? full : any).slice()).slice(0, 2).forEach(x => { if (!alSeen.has(x.id)) { alSeen.add(x.id); albums.push(Object.assign({}, x, { artist: { id: a.id, name: a.name } })); } });
-    shuffleArr((pl.data || []).slice()).slice(0, 2).forEach(x => { if (!plSeen.has(x.id)) { plSeen.add(x.id); pls.push(x); } });
+    shuffleArr((pl.data || []).filter(x => !/deezer/i.test(x.title || '')).slice()).slice(0, 2).forEach(x => { if (!plSeen.has(x.id)) { plSeen.add(x.id); pls.push(x); } });
     shuffleArr((top.data || []).map(T)).slice(0, 3).forEach(t => tracks.push(t));
   });
   return { artists: found.filter(a => !noPic(a.picture_medium)), albums: shuffleArr(albums), pls: shuffleArr(pls), tracks: shuffleArr(tracks) };
@@ -2447,7 +2449,7 @@ async function renderHome(soft) {
     const [wt, mix] = await Promise.all([topTracks('world'), latinMix().catch(() => null)]);
     let al, arList, pl, more;
     if (mix && mix.albums.length >= 4) { al = { data: mix.albums.slice(0, 20) }; arList = mix.artists; pl = { data: mix.pls.slice(0, 18) }; more = mix.tracks.slice(0, 18); }
-    else {                                       // respaldo: lo más escuchado en Deezer
+    else {                                       // respaldo: lo más escuchado del catálogo
       [al, arList, pl] = await Promise.all([dz('/chart/0/albums?limit=20'), popularArtists(), favPlaylists().catch(() => null).then(x => x || dz('/chart/0/playlists?limit=15').catch(() => ({ data: [] })))]);
       more = wt.tracks.slice(5, 20);
     }
@@ -2469,7 +2471,7 @@ async function renderHome(soft) {
       shelf('Escuchado recientemente', hist.map(t => ({ go: 'track:' + t.id, img: t.cover, t1: t.title, t2: t.artist })), 'songs', 'hist') +
       shelf('Álbumes del momento', (al.data || []).map(albumCard), 'albums') +
       shelf('Artistas populares', ars.slice(0, 20).map(artistCard), 'artists') +
-      shelf(favPl ? 'Playlists para ti' : 'Playlists destacadas', (pl.data || []).map(p => ({ go: 'dzpl:' + p.id, img: p.picture_medium, t1: p.title, t2: (p.nb_tracks ? p.nb_tracks + ' canciones' : (p.user && p.user.name) || 'Playlist') })), 'pls') +
+      shelf(favPl ? 'Playlists para ti' : 'Playlists destacadas', (pl.data || []).map(p => ({ go: 'dzpl:' + p.id, img: p.picture_medium, t1: p.title, t2: p.nb_tracks ? p.nb_tracks + ' canciones' : 'Playlist' })), 'pls') +
       shelf('Más canciones para ti', more.map(t => ({ go: 'album:' + t.albumId, img: t.cover, t1: t.title, t2: t.artist })), 'albums') +
       `<div class="foot"><b>Música NX</b><br>© 2026 Nexora · Eduard Gamer</div>`;
     if (soft) await preloadImgs([...heros.map(h => h.img), ...als.slice(0, 3).map(a => a.cover_medium), ...ars.slice(0, 3).map(a => a.picture_medium), ...more.slice(0, 3).map(t => t.cover)], 3500);
@@ -2477,7 +2479,6 @@ async function renderHome(soft) {
     body.innerHTML = html;
     if (soft) { body.classList.remove('fadein'); void body.offsetWidth; body.classList.add('fadein'); }
     homeLoaded = true; applyHomeFilter(); bindHeroDots();
-    if (soft) toast('Inicio actualizado');
     if (D.set.onboarded) buildForYou();
     setTimeout(() => warmUp(tracks), 1500);
   } catch (e) {
@@ -2487,47 +2488,62 @@ async function renderHome(soft) {
   }
   hideSplash();
 }
-/* Desliza hacia abajo en Inicio para recargar (salen otros artistas, álbumes y playlists) */
+/* Desliza hacia abajo desde "¿Qué suena hoy?" para recargar: todo Inicio baja con el dedo,
+   el círculo aparece en el espacio de arriba y gira hasta que lo nuevo ya cargó. */
 (() => {
   const v = $('#v-home'), ind = document.createElement('div');
-  ind.id = 'ptr'; ind.innerHTML = `<svg class="ic"><use href="#i-down"/></svg><i class="ring"></i>`; document.body.appendChild(ind);
-  const DEAD = 28, NEED = 76;                    // hay que bajar el dedo unos 220 px para recargar
+  ind.id = 'ptr';
+  ind.innerHTML = '<svg viewBox="0 0 40 40"><circle class="bg" cx="20" cy="20" r="15"/><circle class="arc" cx="20" cy="20" r="15"/></svg>';
+  document.body.appendChild(ind);
+  const arc = $('.arc', ind), C = 2 * Math.PI * 15;
+  const DEAD = 12, NEED = 80, HOLD = 64, MAX = 120;
   let x0 = 0, y0 = null, dy = 0, mode = '', busy = false;
-  const dist = () => Math.min(Math.max(dy - DEAD, 0) * 0.4, 110);
-  const reset = () => { ind.className = ''; ind.style.transform = ''; };
+  const pull = () => { const r = Math.max(dy - DEAD, 0); return Math.min(r * 0.55, MAX); };
+  const setPull = (d, anim) => {
+    if (d > 0) v.classList.add('pulling');
+    v.classList.toggle('ptr-anim', !!anim);
+    v.style.setProperty('--pull', d + 'px');
+    ind.style.setProperty('--pull', d + 'px');
+  };
+  const reset = () => { ind.className = ''; setPull(0, true); setTimeout(() => { if (!busy && y0 == null) v.classList.remove('ptr-anim', 'pulling'); }, 340); };
   v.addEventListener('touchstart', e => {
-    mode = ''; dy = 0;
-    y0 = (!busy && v.scrollTop <= 0 && e.touches.length === 1) ? e.touches[0].clientY : null;
-    if (y0 != null) x0 = e.touches[0].clientX;
+    mode = ''; dy = 0; y0 = null;
+    if (busy || v.scrollTop > 2 || e.touches.length !== 1) return;
+    if (!e.target.closest('.hdr, .hello') || e.target.closest('button')) return;   // solo desde arriba
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX;
   }, { passive: true });
   v.addEventListener('touchmove', e => {
     if (y0 == null) return;
     const t = e.touches[0], mx = t.clientX - x0;
     dy = t.clientY - y0;
-    if (!mode) {                                 // decide la dirección del gesto
-      if (Math.abs(mx) < 10 && Math.abs(dy) < 10) return;
-      mode = (dy > 0 && Math.abs(dy) > Math.abs(mx) * 1.6 && v.scrollTop <= 0) ? 'pull' : 'no';
+    if (!mode) {
+      if (Math.abs(mx) < 8 && Math.abs(dy) < 8) return;
+      mode = (dy > 0 && Math.abs(dy) > Math.abs(mx) * 1.5) ? 'pull' : 'no';
     }
-    if (mode !== 'pull' || v.scrollTop > 0) { reset(); return; }
-    const d = dist();
-    if (d <= 0) { reset(); return; }
-    ind.className = 'drag' + (d >= NEED ? ' ready' : '');
-    ind.style.transform = `translate(-50%, ${d}px)`;
-    ind.style.setProperty('--rot', (d >= NEED ? 180 : d / NEED * 150) + 'deg');
+    if (mode !== 'pull') return;
+    const d = pull(), k = Math.min(d / NEED, 1);
+    ind.className = 'drag' + (k >= 1 ? ' ready' : '');
+    arc.style.strokeDasharray = `${(C * 0.82 * k).toFixed(1)} ${C.toFixed(1)}`;
+    ind.style.setProperty('--rot', (k * 270 - 90) + 'deg');
+    setPull(d, false);
   }, { passive: true });
   const end = async () => {
     if (y0 == null) return;
-    const ok = mode === 'pull' && dist() >= NEED;
+    const ok = mode === 'pull' && pull() >= NEED;
     y0 = null; mode = '';
     if (!ok) { reset(); return; }
     if (!navigator.onLine) { reset(); toast('Sin conexión'); return; }
     busy = true; vib(12);
-    ind.className = 'spin'; ind.style.transform = 'translate(-50%, 64px)';
+    arc.style.strokeDasharray = '';
+    ind.className = 'spin';
+    setPull(HOLD, true);
+    const t0 = Date.now();
     try { await renderHome(true); } catch (e) {}
+    const wait = 700 - (Date.now() - t0); if (wait > 0) await new Promise(r => setTimeout(r, wait));
     busy = false; reset();
   };
   v.addEventListener('touchend', end);
-  v.addEventListener('touchcancel', () => { y0 = null; mode = ''; reset(); });
+  v.addEventListener('touchcancel', () => { if (y0 != null) { y0 = null; mode = ''; reset(); } });
 })();
 function applyHomeFilter() {
   $$('#homeChips button').forEach(c => c.classList.toggle('on', c.dataset.f === homeF));
