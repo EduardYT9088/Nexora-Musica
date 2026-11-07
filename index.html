@@ -655,6 +655,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <symbol id="i-rows" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="3.5" cy="18" r="1.2"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.7 4.7 0 0 0 7 18.5z"/><path d="M12 15.5v-5M9.8 12.6 12 10.4l2.2 2.2"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></symbol>
@@ -893,17 +894,57 @@ const shuffleArr = a => { for (let i = a.length - 1; i > 0; i--) { const j = Mat
 const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
 /* ---------- Datos guardados en el teléfono ---------- */
-const S = {
+/* Cada cuenta tiene sus propios me gusta, playlists, descargas, historial y perfil.
+   La cuenta que ya estaba usando la app conserva los datos de siempre (sin prefijo). */
+const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou']);
+const LS = {
   get(k, d) { try { const v = localStorage.getItem('nx.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('nx.' + k, JSON.stringify(v)); } catch (e) {} }
 };
+const WHO = (() => {
+  if (LS.get('who', null) === null) {            // primera vez con cuentas separadas
+    const a = LS.get('auth', null) || (LS.get('set', {}) || {}).auth || null;
+    const w = a ? (a.uid || (a.guest ? 'guest' : '')) : '';
+    LS.set('owner', w || '~'); LS.set('who', w);
+    if (a) LS.set('auth', a);
+  }
+  return LS.get('who', '');
+})();
+const userPrefix = w => (w && w === LS.get('owner', '~')) ? '' : 'u.' + (w || '_') + '.';
+const S = {
+  key: k => SCOPED.has(k) ? userPrefix(WHO) + k : k,
+  get(k, d) { return LS.get(S.key(k), d); },
+  set(k, v) { LS.set(S.key(k), v); }
+};
+/** Cambia de cuenta: cada una abre con sus propios datos. */
+function switchUser(w) {
+  if ((w || '') === WHO) return false;
+  LS.set('who', w || '');
+  setTimeout(() => location.reload(), 150);
+  return true;
+}
+/** ¿Alguna otra cuenta de este teléfono tiene descargada esta canción? (para no borrarle el archivo) */
+function offUsedElsewhere(id) {
+  const mine = 'nx.' + S.key('offline');
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k || k === mine || !/^nx\.(u\.[^]*\.)?offline$/.test(k)) continue;
+    try { if ((JSON.parse(localStorage.getItem(k)) || {})[id]) return true; } catch (e) {}
+  }
+  return false;
+}
 const D = {
   likes: S.get('likes', []), pls: S.get('pls', []), albums: S.get('albums', []), artists: S.get('artists', []),
   hist: S.get('hist', []), plays: S.get('plays', {}), stats: S.get('stats', { plays: 0, secs: 0 }),
   set: Object.assign({ name: '', accent: 'nx' }, S.get('set', {})), yt: S.get('yt', {}), rs: S.get('rs', []), recent: S.get('recent', [])
 };
 D.offline = S.get('offline', {}); D.forYou = S.get('foryou', []);
-const save = (...ks) => ks.forEach(k => S.set(k === 'forYou' ? 'foryou' : k, D[k]));
+D.set.auth = LS.get('auth', null);               // la sesión es del teléfono, no de la cuenta
+const save = (...ks) => ks.forEach(k => {
+  if (k === 'set') { const { auth, ...rest } = D.set; S.set('set', rest); LS.set('auth', auth || null); }
+  else S.set(k === 'forYou' ? 'foryou' : k, D[k]);
+  try { cloudTouch(k); } catch (e) {}           // (al arrancar la nube aún no está lista)
+});
 
 /* ---------- Puente con Android (respuestas asíncronas) ---------- */
 const pend = new Map(); let cbn = 0;
@@ -1054,7 +1095,7 @@ async function toggleDownload(t) {
   if (DLP[t.id] != null) { toast('Ya se está descargando'); return; }
   if (isOff(t.id)) {
     actionSheet(`<div class="sh-head">${cvTag(t.cover)}<div class="meta"><div class="t1">${esc(t.title)}</div><div class="t2">Descargada · se escucha sin internet</div></div></div>`, [
-      { ic: 'trash', label: 'Quitar de descargas', danger: true, fn: () => { A.dlDelete(String(t.id)); delete D.offline[t.id]; save('offline'); paintDl(t.id); toast('Se quitó de descargas'); if (curTab === 'lib') renderLib(); const el = stack[stack.length - 1]; if (el && el._kind === 'dl') { popPage(); setTimeout(openDownloads, 10); } } },
+      { ic: 'trash', label: 'Quitar de descargas', danger: true, fn: () => { delete D.offline[t.id]; save('offline'); if (!offUsedElsewhere(String(t.id))) A.dlDelete(String(t.id)); paintDl(t.id); toast('Se quitó de descargas'); if (curTab === 'lib') renderLib(); const el = stack[stack.length - 1]; if (el && el._kind === 'dl') { popPage(); setTimeout(openDownloads, 10); } } },
       { ic: 'back', label: 'Cancelar', fn: () => {} }]);
     return;
   }
@@ -1293,7 +1334,7 @@ function extendQueue() {
 }
 function botHint() {
   if (P.botToast || P.eng.logged || !/verificaci/i.test(P.lastErr || '')) return;
-  P.botToast = true; toast('YouTube pidió verificación. Inicia sesión en Perfil → Cuenta de YouTube');
+  P.botToast = true; toast('YouTube está pidiendo verificación. Intenta de nuevo en unos minutos');
 }
 /** Pasa la canción del reproductor de YouTube al motor NX (sigue sonando con la app cerrada). */
 function handoffToNative(force) {
@@ -2567,7 +2608,6 @@ function renderMe() {
     ${NAT ? `<div class="sh-h"><h2 class="sec">Reproducción</h2></div>
     <div class="menu">
       <button class="mi" data-m="engine"><span class="ico" style="background:linear-gradient(135deg,#FF4D8D,#8B5CFF)">${ic('music')}</span><div class="meta"><div class="t1">Motor NX (yt-dlp)</div><small id="engSub">${esc(engineText())}</small></div>${ic('right')}</button>
-      <button class="mi" data-m="account"><span class="ico" style="background:#E11D48">${ic('yt')}</span><div class="meta"><div class="t1">Cuenta de YouTube</div><small id="accSub">${esc(accountText())}</small></div>${ic('right')}</button>
     </div>` : ''}
     <div class="sh-h"><h2 class="sec">Ajustes</h2></div>
     <div class="menu">
@@ -2577,6 +2617,7 @@ function renderMe() {
     <div class="menu">
       <button class="mi" data-m="hist"><span class="ico" style="background:#6366F1">${ic('clock')}</span><div class="meta"><div class="t1">Escuchado recientemente</div><small>${D.hist.length} canciones</small></div>${ic('right')}</button>
       <button class="mi" data-m="favs"><span class="ico" style="background:#EC4899">${ic('user')}</span><div class="meta"><div class="t1">Artistas favoritos</div><small>${(D.set.favArtists || []).length} elegidos</small></div>${ic('right')}</button>
+      <button class="mi" data-m="cloud"><span class="ico" style="background:linear-gradient(135deg,#38BDF8,#6366F1)">${ic('cloud')}</span><div class="meta"><div class="t1">Copia en la nube</div><small id="cloudTxt">${esc(cloudText())}</small></div>${ic('right')}</button>
       <button class="mi" data-m="dls"><span class="ico" style="background:linear-gradient(135deg,#22C55E,#0EA5E9)">${ic('download')}</span><div class="meta"><div class="t1">Descargas</div><small>${Object.keys(D.offline).length} canciones · ${(offSize() / 1048576).toFixed(0)} MB</small></div>${ic('right')}</button>
       <button class="mi" data-m="autoplay"><span class="ico" style="background:#22C55E">${ic('spark')}</span><div class="meta"><div class="t1">Reproducción automática</div><small>Al terminar, más del mismo artista y parecidas</small></div><span class="sw-t${autoplayOn() ? ' on' : ''}" id="apSw"></span></button>
       <button class="mi" data-m="timer"><span class="ico" style="background:#0EA5E9">${ic('timer')}</span><div class="meta"><div class="t1">Temporizador para dormir</div><small>${P.sleepAt ? 'Activo' : P.sleepEnd ? 'Al final de la canción' : 'Desactivado'}</small></div>${ic('right')}</button>
@@ -2648,6 +2689,7 @@ $('#meBody').onclick = e => {
   else if (k === 'engine') engineSheet();
   else if (k === 'favs') openOnb(false);
   else if (k === 'dls') openDownloads();
+  else if (k === 'cloud') { if (!D.set.auth || D.set.auth.guest) needLogin('guardar tus datos en la nube'); else if (CL.st === 'relogin') logoutSheet(); else cloudSync(true); }
   else if (k === 'autoplay') { D.set.autoplay = !autoplayOn(); save('set'); $('#apSw').classList.toggle('on', autoplayOn()); toast(autoplayOn() ? 'Reproducción automática activada' : 'Reproducción automática desactivada'); prefetchNext(); }
   else if (k === 'account') accountSheet();
   else if (k === 'upd') checkUpdate(true);
@@ -2791,7 +2833,19 @@ function fbErr(e) {
   return (M[c] || 'No se pudo iniciar sesión. Intenta de nuevo.') + (c && c !== 'noconfig' ? ' (' + String(c).replace('auth/', '') + ')' : '');
 }
 function signedIn(u, provider, extra = {}) {
-  D.set.auth = { uid: u.uid, provider, email: u.email || extra.email || '', phone: u.phoneNumber || '', name: u.displayName || extra.name || '', at: Date.now() };
+  const auth = { uid: u.uid, provider, email: u.email || extra.email || '', phone: u.phoneNumber || '', name: u.displayName || extra.name || '', at: Date.now() };
+  if (u.uid !== WHO) {                           // otra cuenta: se abre con sus propios datos
+    LS.set('auth', auth);
+    const fresh = LS.get(userPrefix(u.uid) + 'set', null) === null;
+    if (fresh && WHO === 'guest') {               // venías de invitado: tu música pasa a tu cuenta nueva
+      SCOPED.forEach(k => { const v = LS.get(userPrefix('guest') + k, null); if (v !== null) LS.set(userPrefix(u.uid) + k, v); });
+      const st = LS.get(userPrefix(u.uid) + 'set', {}) || {};
+      LS.set(userPrefix(u.uid) + 'set', Object.assign(st, { name: st.name || auth.name, photo: st.photo || u.photoURL || extra.photo || '' }));
+    } else if (fresh) LS.set(userPrefix(u.uid) + 'set', { name: auth.name, photo: u.photoURL || extra.photo || '', accent: 'nx' });
+    closeAuth(); toast(fresh && WHO !== 'guest' ? 'Cuenta nueva: empezamos desde cero' : 'Abriendo tu cuenta…');
+    stopEngines(); switchUser(u.uid); return;
+  }
+  D.set.auth = auth; CL.db = null; setTimeout(() => cloudSync(), 600);
   if (!D.set.name && D.set.auth.name) D.set.name = D.set.auth.name;
   const photo = u.photoURL || extra.photo;
   if (!D.set.photo && photo) D.set.photo = photo;
@@ -2801,6 +2855,7 @@ function signedIn(u, provider, extra = {}) {
   if (!D.set.onboarded) setTimeout(() => openOnb(true), 350);
 }
 function enterGuest() {
+  if (WHO !== 'guest') { LS.set('auth', { guest: true, at: Date.now() }); closeAuth(); stopEngines(); switchUser('guest'); return; }
   D.set.auth = { guest: true, at: Date.now() }; save('set'); closeAuth();
   toast('Entraste como invitado');
   if (curTab === 'me') renderMe();
@@ -2876,10 +2931,12 @@ async function phoneVerify() {
   AU.busy = false; $('#phVerify').disabled = false;
 }
 function logoutSheet() {
-  actionSheet(`<div class="sh-title">¿Cerrar sesión?</div><p class="sh-p">Tus playlists, me gusta y descargas se quedan en este teléfono. Para descargar y cambiar tu foto tendrás que volver a entrar.</p>`, [
+  actionSheet(`<div class="sh-title">¿Cerrar sesión?</div><p class="sh-p">Tus playlists, me gusta y descargas quedan guardados en esta cuenta y vuelven cuando entres otra vez. Cada cuenta tiene los suyos.</p>`, [
     { ic: 'logout', label: 'Cerrar sesión', danger: true, fn: async () => {
       try { if (AU.fb || fbReady()) { const a = await fb(); await a.signOut(); } } catch (e) {}
       try { A && A.googleSignOut && A.googleSignOut(); } catch (e) {}
+      if (CL.dirty.size) { try { await cloudPush(); } catch (e) {} }
+      CL.db = null; CL.st = 'off';
       D.set.auth = null; save('set'); renderMe(); toast('Sesión cerrada'); openAuth(true);
     } },
     { ic: 'back', label: 'Cancelar', fn: () => {} }]);
@@ -2965,6 +3022,140 @@ $('#onbGrid').addEventListener('click', e => {
 });
 $('#onbGo').onclick = finishOnb;
 $('#onbClose').onclick = closeOnb;
+
+/* ---------- Copia en la nube (Firestore): tus datos en cualquier celular ---------- */
+const CLOUD_KEYS = ['likes', 'pls', 'albums', 'artists', 'set', 'hist', 'stats', 'plays', 'recent', 'rs'];
+const CL = { db: null, st: 'off', last: 0, busy: null, dirty: new Set(), t: null, warned: false };
+const syncKey = () => userPrefix(WHO) + 'syncat';
+const cloudOn = () => fbReady() && !!(D.set.auth && D.set.auth.uid && !D.set.auth.guest && D.set.auth.uid === WHO);
+const emptyVal = v => v == null || (Array.isArray(v) ? !v.length : (typeof v === 'object' && !Object.keys(v).length));
+function cloudVal(k) {
+  if (k === 'set') { const { auth, ...r } = D.set; return r; }
+  if (k === 'hist') return D.hist.slice(0, 80);
+  return D[k];
+}
+/** Primera vez en este celular: junta lo de aquí con lo que ya había en la nube. */
+function cloudMerge(k, rv, lv) {
+  if (Array.isArray(lv) && Array.isArray(rv)) {
+    const id = x => (x && typeof x === 'object' && x.id != null) ? 'i' + x.id : 'j' + JSON.stringify(x);
+    const seen = new Set(lv.map(id));
+    return lv.concat(rv.filter(x => !seen.has(id(x))));
+  }
+  if (k === 'set' && lv && rv) {                // el perfil de la nube manda; lo vacío no borra nada
+    const out = Object.assign({}, lv);
+    Object.entries(rv).forEach(([key, val]) => { if (val !== '' && val != null) out[key] = val; });
+    return out;
+  }
+  if (k === 'stats' && lv && rv) return { plays: Math.max(+lv.plays || 0, +rv.plays || 0), secs: Math.max(+lv.secs || 0, +rv.secs || 0) };
+  if (lv && rv && typeof lv === 'object' && typeof rv === 'object') return Object.assign({}, rv, lv);
+  return emptyVal(lv) ? rv : lv;
+}
+function applyCloud(k, v) {
+  if (k === 'set') { D.set = Object.assign({ name: '', accent: 'nx' }, v, { auth: D.set.auth }); const { auth, ...r } = D.set; S.set('set', r); return; }
+  D[k] = v; S.set(k, v);
+}
+async function cloudDb() {
+  if (CL.db) return CL.db;
+  const auth = await fb();
+  await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+  const u = auth.currentUser || await new Promise(r => {
+    const off = auth.onAuthStateChanged(x => { off(); r(x); });
+    setTimeout(() => r(auth.currentUser), 9000);
+  });
+  if (!u || u.uid !== WHO) { const e = new Error('relogin'); e.code = 'relogin'; throw e; }
+  CL.db = firebase.firestore();
+  return CL.db;
+}
+const cloudCol = db => db.collection('users').doc(WHO).collection('data');
+async function cloudPut(col, k, at) {
+  const v = JSON.stringify(cloudVal(k) ?? null);
+  if (v.length > 900000) {                         // límite de Firestore: 1 MB por documento
+    if (!CL.warned) { CL.warned = true; toast('Tienes demasiados datos para la nube; una parte queda solo en este teléfono'); }
+    return;
+  }
+  await col.doc(k).set({ v, at });
+}
+function cloudErr(e) {
+  const c = String((e && (e.code || e.message)) || '');
+  CL.st = c === 'relogin' || /unauthenticated/.test(c) ? 'relogin' : /permission/.test(c) ? 'rules'
+    : (!navigator.onLine || /unavailable|network/.test(c)) ? 'offline' : 'error';
+  CL.err = c;
+}
+/** Trae lo de la nube y sube lo de este celular (gana lo más reciente de cada cosa). */
+function cloudSync(manual) {
+  if (!cloudOn()) { CL.st = 'off'; paintCloud(); return Promise.resolve(false); }
+  if (CL.busy) return CL.busy;
+  if (!navigator.onLine) { CL.st = 'offline'; paintCloud(); if (manual) toast('Sin conexión: se guardará cuando vuelva el internet'); return Promise.resolve(false); }
+  CL.st = 'sync'; paintCloud();
+  CL.busy = (async () => {
+    try {
+      const col = cloudCol(await cloudDb());
+      const snap = await col.get();
+      const remote = {}; snap.forEach(d => { remote[d.id] = d.data(); });
+      const loc = LS.get(syncKey(), {}), now = Date.now(), changed = [], ups = [];
+      for (const k of CLOUD_KEYS) {
+        const r = remote[k], la = +loc[k] || 0, ra = r ? (+r.at || 0) : 0, lv = cloudVal(k);
+        let rv; try { rv = r ? JSON.parse(r.v) : undefined; } catch (e) { rv = undefined; }
+        if (rv === undefined) { if (!emptyVal(lv) || la) ups.push([k, la || now]); continue; }
+        if (la === 0) {                              // primera vez en este celular: junta las dos cosas
+          const m = emptyVal(lv) ? rv : cloudMerge(k, rv, lv);
+          if (JSON.stringify(m) !== JSON.stringify(lv)) { applyCloud(k, m); changed.push(k); }
+          if (JSON.stringify(m) !== JSON.stringify(rv)) ups.push([k, now]); else loc[k] = ra;
+        } else if (ra > la) { applyCloud(k, rv); loc[k] = ra; changed.push(k); }
+        else if (la > ra) ups.push([k, la]);
+      }
+      for (const [k, at] of ups) { await cloudPut(col, k, at); loc[k] = at; CL.dirty.delete(k); }
+      LS.set(syncKey(), loc);
+      CL.st = 'ok'; CL.last = Date.now();
+      if (changed.length) afterCloud(changed);
+      if (manual) toast(changed.length ? 'Se trajeron tus datos de la nube' : 'Todo está guardado en la nube');
+      return true;
+    } catch (e) {
+      cloudErr(e);
+      if (manual) toast(CL.st === 'relogin' ? 'Vuelve a iniciar sesión para usar la nube' : CL.st === 'rules' ? 'La nube aún no está activada en Firebase' : 'No se pudo sincronizar. Intenta más tarde');
+      return false;
+    } finally { CL.busy = null; paintCloud(); }
+  })();
+  return CL.busy;
+}
+/** Algo cambió en este celular: se sube a la nube unos segundos después. */
+function cloudTouch(k) {
+  if (!CLOUD_KEYS.includes(k)) return;
+  const loc = LS.get(syncKey(), {}); loc[k] = Date.now(); LS.set(syncKey(), loc);
+  if (!cloudOn()) return;
+  CL.dirty.add(k); clearTimeout(CL.t); CL.t = setTimeout(cloudPush, 4000);
+}
+async function cloudPush() {
+  if (!CL.dirty.size || !cloudOn() || !navigator.onLine) return;
+  if (CL.busy) { clearTimeout(CL.t); CL.t = setTimeout(cloudPush, 3000); return; }
+  try {
+    const col = cloudCol(await cloudDb()), loc = LS.get(syncKey(), {});
+    for (const k of [...CL.dirty]) { CL.dirty.delete(k); await cloudPut(col, k, +loc[k] || Date.now()); }
+    CL.st = 'ok'; CL.last = Date.now();
+  } catch (e) { cloudErr(e); }
+  paintCloud();
+}
+function afterCloud(changed) {
+  applyAccent(); paintAvatars(); renderHomeQuick();
+  if (D.set.onboarded && ONB.open && ONB.must) closeOnb();
+  if (curTab === 'me') renderMe();
+  if (curTab === 'lib') renderLib();
+  if (changed.some(k => k === 'set' || k === 'likes' || k === 'hist')) renderHome();
+}
+function cloudText() {
+  if (!D.set.auth || D.set.auth.guest) return 'Inicia sesión para guardar tus datos';
+  return ({
+    sync: 'Sincronizando…',
+    ok: 'Guardado' + (CL.last ? ' · hace ' + Math.max(1, Math.round((Date.now() - CL.last) / 60000)) + ' min' : ''),
+    offline: 'Sin conexión: se guardará al volver el internet',
+    relogin: 'Vuelve a iniciar sesión para usar la nube',
+    rules: 'Falta activar la nube en Firebase',
+    error: 'No se pudo sincronizar · toca para reintentar'
+  })[CL.st] || 'Tus datos en cualquier celular';
+}
+function paintCloud() { const el = $('#cloudTxt'); if (el) el.textContent = cloudText(); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && cloudOn() && Date.now() - CL.last > 90e3) cloudSync(); });
+window.addEventListener('online', () => { if (cloudOn()) cloudSync(); });
 
 /* ---------- Actualización obligatoria ---------- */
 const UPD_JSON = `https://github.com/${REPO}/releases/latest/download/version.json`;
@@ -3106,13 +3297,17 @@ function hideSplash() {
   if (!updChecked) {
     updChecked = true;
     if (!D.set.auth) setTimeout(() => openAuth(true), w);
-    else if (!D.set.onboarded) setTimeout(() => openOnb(true), w);
+    else if (!D.set.onboarded) setTimeout(async () => {
+      if (cloudOn()) await Promise.race([cloudSync(), new Promise(r => setTimeout(r, 7000))]);
+      if (!D.set.onboarded) openOnb(true);
+    }, w);
+    else setTimeout(() => cloudSync(), w + 1500);
     setTimeout(() => checkUpdate(false), w + 400);
   }
 }
 setTimeout(hideSplash, 4000);
 applyAccent(); updateModes(); setPlaying(false);
-if (NAT) { try { Object.assign(P.eng, JSON.parse(A.engine())); P.engKnown = true; } catch (e) {} restoreNative(); syncOffline(); }
+if (NAT) { try { Object.assign(P.eng, JSON.parse(A.engine())); P.engKnown = true; if (P.eng.logged && A.logout) { P.engKnown = false; A.logout(); } } catch (e) {} restoreNative(); syncOffline(); }
 window.addEventListener('online', () => { if (!homeLoaded) renderHome(); });
 paintAvatars();
 renderHome();

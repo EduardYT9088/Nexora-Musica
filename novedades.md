@@ -1,4 +1,9 @@
-Versión: 1.6.2
+Versión: 1.7.0
+- Copia en la nube: tus me gusta, playlists, álbumes, artistas, historial y perfil aparecen en cualquier celular donde inicies sesión
+- Se guarda sola unos segundos después de cada cambio; en Perfil → Copia en la nube ves el estado
+- Se quitó la opción "Cuenta de YouTube" del perfil (ya no hace falta iniciar sesión en YouTube)
+- Cada cuenta tiene sus propios datos (una cuenta nueva empieza desde cero)
+- Si usabas la app como invitado y creas una cuenta, tu música pasa a esa cuenta
 - Arreglado: algunas canciones se quedaban cargando y no empezaban a sonar
 - Las canciones empiezan mucho más rápido: nuevo reproductor (ExoPlayer) que suena con medio segundo de audio
 - Las canciones que ya escuchaste se recuerdan y vuelven a sonar al instante, aunque cierres la app

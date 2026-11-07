@@ -38,13 +38,13 @@
   <div class="in">
     <div class="logo"><span><i style="height:10px"></i><i style="height:20px"></i><i style="height:14px"></i><i style="height:8px"></i></span>Música NX</div>
     <h1>Política de privacidad</h1>
-    <p>Última actualización: 6 de noviembre de 2026 (v1.6.2)</p>
+    <p>Última actualización: 6 de noviembre de 2026 (v1.7.0)</p>
   </div>
 </header>
 
 <main class="in">
   <div class="box">
-    <p><strong>En resumen:</strong> Puedes usar Música NX como invitado o iniciar sesión (Google o correo). No recopilamos tu ubicación y no vendemos ni compartimos tus datos. Tus favoritos, playlists, historial y, si decides iniciarla, tu sesión de YouTube se guardan solo en tu teléfono.</p>
+    <p><strong>En resumen:</strong> Puedes usar Música NX como invitado o iniciar sesión (Google o correo). No recopilamos tu ubicación y no vendemos ni compartimos tus datos. Si inicias sesión, tus favoritos, playlists, historial y perfil se guardan en tu cuenta (Firebase) para que aparezcan en tus otros celulares. Tus descargas se quedan solo en tu teléfono.</p>
   </div>
 
   <p>Esta política explica cómo la aplicación <strong>Música NX</strong> (en adelante, "la app"), desarrollada por <strong>Nexora · Eduard Gamer</strong>, trata la información de las personas que la usan.</p>
@@ -60,7 +60,7 @@
     <li>Los artistas favoritos que eliges al entrar, para recomendarte música.</li>
     <li>Las canciones que descargas para escuchar sin internet, guardadas en la memoria privada de la app (otras apps no pueden abrirlas). Se borran al quitarlas de Descargas o al desinstalar la app.</li>
   </ul>
-  <p>Esta información <strong>no sale de tu teléfono</strong> y el desarrollador no tiene acceso a ella.</p>
+  <p>Como invitado, esta información <strong>no sale de tu teléfono</strong>. Si inicias sesión, una copia se guarda en tu cuenta (ver sección 1.1).</p>
 
   <h2>1.1 Tu cuenta de Música NX</h2>
   <p>Al abrir la app puedes <strong>iniciar sesión</strong> con Google o con tu correo, o <strong>entrar como invitado</strong>.</p>
@@ -69,17 +69,9 @@
     <li>Las contraseñas las procesa Firebase; Música NX nunca las ve ni las guarda.</li>
     <li>La cuenta solo se usa para identificarte dentro de la app y habilitar las descargas y la foto de perfil. No se usa para publicidad ni se vende.</li>
     <li>Como invitado no se crea ninguna cuenta.</li>
-    <li>Puedes cerrar sesión en <strong>Perfil → Salir</strong>. Para borrar tu cuenta, escribe al correo de contacto.</li>
-  </ul>
-
-  <h2>1.2 Inicio de sesión en YouTube (opcional)</h2>
-  <p>En <strong>Perfil → Cuenta de YouTube</strong> puedes iniciar sesión en YouTube. Es opcional y solo sirve cuando YouTube pide confirmar que "no eres un robot".</p>
-  <ul>
-    <li>El inicio de sesión se hace en la página oficial de Google. <strong>Música NX no ve ni guarda tu contraseña.</strong></li>
-    <li>Al tocar "Guardar", la app guarda las cookies de sesión de YouTube en un archivo privado dentro de la app, solo en tu teléfono.</li>
-    <li>Esa sesión solo se envía a YouTube, al obtener una canción. No se envía al desarrollador ni a nadie más.</li>
-    <li>Puedes borrarla cuando quieras con <strong>Cerrar sesión</strong>, borrando los datos de la app o desinstalándola.</li>
-    <li><strong>Aviso:</strong> YouTube puede limitar o suspender cuentas que usan herramientas no oficiales como yt-dlp. Recomendamos usar una cuenta secundaria.</li>
+    <li><strong>Copia en la nube:</strong> con la sesión iniciada, tus me gusta, playlists, álbumes y artistas guardados, historial, estadísticas, búsquedas recientes y perfil (nombre, foto, fondo, color y artistas favoritos) se guardan en <strong>Cloud Firestore</strong> (Google Firebase), en un espacio que solo tu cuenta puede leer y modificar. Las canciones descargadas no se suben.</li>
+    <li>Si en el mismo teléfono se usan varias cuentas, cada una guarda por separado sus me gusta, playlists, descargas, historial y perfil.</li>
+    <li>Puedes cerrar sesión en <strong>Perfil → Salir</strong>. Para borrar tu cuenta y su copia en la nube, escribe al correo de contacto.</li>
   </ul>
 
   <h2>2. Cómo se usan los datos</h2>
@@ -92,8 +84,8 @@
   <table>
     <tr><th>Servicio</th><th>Para qué se usa</th><th>Su política</th></tr>
     <tr><td>Deezer API</td><td>Catálogo, búsquedas, portadas, álbumes, artistas y vistas previas de 30 s</td><td><a href="https://www.deezer.com/legal/personal-datas" target="_top">deezer.com</a></td></tr>
-    <tr><td>YouTube (Google)</td><td>Reproducir la canción completa (con el motor rápido de la app, con yt-dlp o con el reproductor oficial de YouTube), ver el video y, si lo eliges, iniciar sesión</td><td><a href="https://policies.google.com/privacy" target="_top">policies.google.com</a></td></tr>
-    <tr><td>Firebase Authentication (Google)</td><td>Iniciar sesión con Google o correo</td><td><a href="https://firebase.google.com/support/privacy" target="_top">firebase.google.com</a></td></tr>
+    <tr><td>YouTube (Google)</td><td>Reproducir la canción completa (con el motor rápido de la app, con yt-dlp o con el reproductor oficial de YouTube) y ver el video</td><td><a href="https://policies.google.com/privacy" target="_top">policies.google.com</a></td></tr>
+    <tr><td>Firebase Authentication y Cloud Firestore (Google)</td><td>Iniciar sesión con Google o correo y guardar la copia de tus datos en la nube</td><td><a href="https://firebase.google.com/support/privacy" target="_top">firebase.google.com</a></td></tr>
     <tr><td>LRCLIB</td><td>Letras de las canciones</td><td><a href="https://lrclib.net" target="_top">lrclib.net</a></td></tr>
     <tr><td>GitHub</td><td>Al abrir la app, consulta si hay una versión nueva de Música NX y la descarga cuando tocas "Actualizar ahora". También actualiza el motor yt-dlp (cada 12 horas como máximo)</td><td><a href="https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement" target="_top">github.com</a></td></tr>
   </table>
@@ -111,7 +103,6 @@
   <h2>5. Cómo borrar tus datos</h2>
   <ul>
     <li>Dentro de la app: <strong>Perfil → Borrar historial</strong> elimina recientes, búsquedas y estadísticas.</li>
-    <li><strong>Perfil → Cuenta de YouTube → Cerrar sesión</strong> borra tu sesión de YouTube del teléfono.</li>
     <li>Para borrarlo todo: en Android ve a <strong>Ajustes → Aplicaciones → Música NX → Almacenamiento → Borrar datos</strong>, o desinstala la app.</li>
   </ul>
 
