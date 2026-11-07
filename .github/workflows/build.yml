@@ -134,6 +134,8 @@ jobs:
               coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.0.4")
               // Inicio de sesión con Google (token para Firebase)
               implementation("com.google.android.gms:play-services-auth:21.2.0")
+              // Reproductor rápido (empieza a sonar con medio segundo de audio)
+              implementation("androidx.media3:media3-exoplayer:1.4.1")
           }
           APPEOF
           cat > app/proguard-rules.pro <<'APPEOF'
@@ -973,21 +975,18 @@ jobs:
           import android.media.AudioFocusRequest
           import android.media.AudioManager
           import android.media.MediaMetadata
-          import android.media.MediaPlayer
           import android.media.session.MediaSession
           import android.media.session.PlaybackState
-          import android.net.Uri
           import android.os.Build
           import android.os.Handler
           import android.os.IBinder
           import android.os.Looper
-          import android.os.PowerManager
           import org.json.JSONObject
           import java.net.HttpURLConnection
           import java.net.URL
 
           /**
-           * Reproduce la música de Música NX en segundo plano, con controles en la notificación,
+           * Reproduce la música de Música NX en segundo plano (con ExoPlayer, ver Px), con controles en la notificación,
            * en la pantalla de bloqueo y en los audífonos. Precarga la siguiente canción para que
            * el cambio sea inmediato aunque la app esté cerrada o la pantalla apagada.
            * Todo se llama desde el hilo principal.
@@ -1007,7 +1006,7 @@ jobs:
                   private var pendingPlay: JSONObject? = null
 
                   // Siguiente canción precargada
-                  private var nextMp: MediaPlayer? = null
+                  private var nextMp: Px? = null
                   private var nextInfo: JSONObject? = null
                   private var nextReady = false
 
@@ -1047,17 +1046,7 @@ jobs:
                       nextMp = null; nextInfo = null; nextReady = false
                   }
 
-                  private fun newPlayer(c: Context, url: String, ua: String): MediaPlayer {
-                      val p = MediaPlayer()
-                      p.setAudioAttributes(AudioAttributes.Builder()
-                          .setUsage(AudioAttributes.USAGE_MEDIA)
-                          .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                      p.setWakeMode(c.applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
-                      val h = HashMap<String, String>()
-                      if (ua.isNotEmpty()) h["User-Agent"] = ua
-                      p.setDataSource(c.applicationContext, Uri.parse(url), h)
-                      return p
-                  }
+                  private fun newPlayer(c: Context, url: String, ua: String): Px = Px(c, url, ua)
 
                   fun toggle() { inst?.toggleP() }
                   fun pause() { inst?.pauseP() }
@@ -1070,7 +1059,7 @@ jobs:
               }
 
               private val main = Handler(Looper.getMainLooper())
-              private var mp: MediaPlayer? = null
+              private var mp: Px? = null
               @Volatile private var prepared = false
               private var info = JSONObject()
               private var startPos = 0L
@@ -1155,7 +1144,7 @@ jobs:
                   }
               }
 
-              private fun attach(p: MediaPlayer) {
+              private fun attach(p: Px) {
                   mp = p
                   p.setOnPreparedListener { onPrepared(it) }
                   p.setOnCompletionListener { onDone() }
@@ -1165,11 +1154,11 @@ jobs:
                   }
               }
 
-              private fun onPrepared(p: MediaPlayer) {
+              private fun onPrepared(p: Px) {
                   if (p !== mp || prepared) return
                   prepared = true
                   try {
-                      if (startPos > 1000) p.seekTo(startPos, MediaPlayer.SEEK_CLOSEST)
+                      if (startPos > 1000) p.seekTo(startPos, Px.SEEK_CLOSEST)
                       p.start()
                       st = "playing"
                   } catch (e: Exception) { st = "error" }
@@ -1231,7 +1220,7 @@ jobs:
               fun seekP(ms: Long) {
                   val p = mp ?: return
                   if (!prepared) { startPos = ms; return }
-                  try { p.seekTo(ms.coerceAtLeast(0), MediaPlayer.SEEK_CLOSEST) } catch (e: Exception) {}
+                  try { p.seekTo(ms.coerceAtLeast(0), Px.SEEK_CLOSEST) } catch (e: Exception) {}
                   if (st == "ended") st = "paused"
                   updateSession()
               }
@@ -1422,6 +1411,113 @@ jobs:
                   ms = null
                   if (inst === this) inst = null
                   super.onDestroy()
+              }
+          }
+          APPEOF
+          cat > app/src/main/java/com/nexora/musicanx/Px.kt <<'APPEOF'
+          package com.nexora.musicanx
+
+          import android.content.Context
+          import android.net.Uri
+          import android.os.Handler
+          import android.os.Looper
+          import androidx.media3.common.AudioAttributes
+          import androidx.media3.common.C
+          import androidx.media3.common.MediaItem
+          import androidx.media3.common.PlaybackException
+          import androidx.media3.common.Player
+          import androidx.media3.datasource.DefaultDataSource
+          import androidx.media3.datasource.DefaultHttpDataSource
+          import androidx.media3.exoplayer.DefaultLoadControl
+          import androidx.media3.exoplayer.ExoPlayer
+          import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+
+          /**
+           * Reproductor de una canción con ExoPlayer: empieza a sonar con medio segundo de audio
+           * (MediaPlayer esperaba varios segundos). Se usa como el MediaPlayer de antes y siempre
+           * desde el hilo principal; posición y duración se pueden leer desde cualquier hilo.
+           */
+          class Px(c: Context, url: String, ua: String) {
+              companion object { const val SEEK_CLOSEST = 0 }
+
+              private val p: ExoPlayer
+              private val main = Handler(Looper.getMainLooper())
+              private var released = false
+              private var readyFired = false
+              private var onPrep: ((Px) -> Unit)? = null
+              private var onDone: ((Px) -> Unit)? = null
+              private var onErr: ((Px, Int, Int) -> Boolean)? = null
+
+              @Volatile var currentPosition: Long = 0L; private set
+              @Volatile var duration: Long = 0L; private set
+
+              init {
+                  val http = DefaultHttpDataSource.Factory()
+                      .setAllowCrossProtocolRedirects(true)
+                      .setConnectTimeoutMs(10000)
+                      .setReadTimeoutMs(15000)
+                  if (ua.isNotEmpty()) http.setUserAgent(ua)
+                  val load = DefaultLoadControl.Builder()
+                      .setBufferDurationsMs(20000, 60000, 500, 1500)   // suena con 0,5 s de audio listo
+                      .build()
+                  p = ExoPlayer.Builder(c.applicationContext)
+                      .setMediaSourceFactory(DefaultMediaSourceFactory(DefaultDataSource.Factory(c.applicationContext, http)))
+                      .setLoadControl(load)
+                      .setWakeMode(C.WAKE_MODE_NETWORK)
+                      .setAudioAttributes(AudioAttributes.Builder()
+                          .setUsage(C.USAGE_MEDIA)
+                          .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                          .build(), false)                               // el foco de audio lo maneja AudioService
+                      .setHandleAudioBecomingNoisy(false)
+                      .build()
+                  p.playWhenReady = false
+                  p.addListener(object : Player.Listener {
+                      override fun onPlaybackStateChanged(state: Int) {
+                          if (released) return
+                          refresh()
+                          if (state == Player.STATE_READY && !readyFired) { readyFired = true; onPrep?.invoke(this@Px) }
+                          else if (state == Player.STATE_ENDED) onDone?.invoke(this@Px)
+                      }
+                      override fun onPlayerError(error: PlaybackException) {
+                          if (!released) onErr?.invoke(this@Px, error.errorCode, 0)
+                      }
+                  })
+                  p.setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+                  tick()
+              }
+
+              private fun refresh() {
+                  if (released) return
+                  try {
+                      currentPosition = p.currentPosition.coerceAtLeast(0)
+                      val d = p.duration
+                      duration = if (d == C.TIME_UNSET || d < 0) 0L else d
+                  } catch (e: Exception) {}
+              }
+
+              private fun tick() {
+                  if (released) return
+                  refresh()
+                  main.postDelayed({ tick() }, 500)
+              }
+
+              fun setOnPreparedListener(f: (Px) -> Unit) { onPrep = f }
+              fun setOnCompletionListener(f: (Px) -> Unit) { onDone = f }
+              fun setOnErrorListener(f: (Px, Int, Int) -> Boolean) { onErr = f }
+
+              fun prepareAsync() { p.prepare() }
+              fun start() { if (p.playbackState == Player.STATE_ENDED) p.seekTo(0); p.playWhenReady = true; refresh() }
+              fun pause() { p.playWhenReady = false; refresh() }
+              val isPlaying: Boolean get() = !released && p.playWhenReady && p.playbackState != Player.STATE_ENDED
+              fun seekTo(ms: Long, @Suppress("UNUSED_PARAMETER") mode: Int) { p.seekTo(ms.coerceAtLeast(0)); currentPosition = ms.coerceAtLeast(0) }
+              fun setVolume(l: Float, @Suppress("UNUSED_PARAMETER") r: Float) { p.volume = l }
+
+              fun release() {
+                  if (released) return
+                  released = true
+                  main.removeCallbacksAndMessages(null)
+                  onPrep = null; onDone = null; onErr = null
+                  try { p.release() } catch (e: Exception) {}
               }
           }
           APPEOF
