@@ -532,12 +532,25 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .oa .ring .cv{width:100%;height:100%;border-radius:50%}
 .cv.ini{display:flex;align-items:center;justify-content:center;container-type:inline-size}
 .cv.ini::before{display:none}
-#ptr{position:fixed;left:50%;top:calc(var(--st) + 6px);z-index:30;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(30,30,44,.92);border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.45);transform:translate(-50%,-70px);opacity:0;transition:transform .3s,opacity .3s;pointer-events:none;color:var(--mut)}
-#ptr .ic{width:20px;height:20px}
+#ptr{position:fixed;left:50%;top:calc(var(--st) + 6px);z-index:30;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:rgba(30,30,44,.94);border:1px solid rgba(255,255,255,.1);box-shadow:0 8px 24px rgba(0,0,0,.45);transform:translate(-50%,-80px);opacity:0;transition:transform .3s,opacity .3s;pointer-events:none;color:var(--mut)}
+#ptr>*{grid-area:1/1}
+#ptr .ic{width:20px;height:20px;transform:rotate(var(--rot,0deg));transition:transform .15s}
+#ptr .ring{display:none;width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(255,255,255,.15);border-top-color:var(--acc);animation:spin .75s linear infinite}
 #ptr.drag{transition:none;opacity:1}
-#ptr.ready{color:var(--acc,#fff)}
-#ptr.spin{opacity:1;color:var(--acc,#fff)}
-#ptr.spin .ic{animation:spin .8s linear infinite}
+#ptr.ready{color:var(--acc)}
+#ptr.spin{opacity:1}
+#ptr.spin .ic{display:none}
+#ptr.spin .ring{display:block}
+#homeBody.fadein{animation:fadein .45s ease}
+@keyframes fadein{from{opacity:.25}}
+.bn-edit.bn-set{right:auto;left:16px}
+.set-card{display:flex;align-items:center;gap:14px;width:calc(100% - 32px);margin:18px 16px 6px;padding:16px;border-radius:20px;text-align:left;background:linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.08)}
+.set-card .ico,.set-top .ico{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:var(--grad);color:#fff;flex:none}
+.set-card .meta{flex:1;min-width:0}.set-card b{display:block;font-size:16px}.set-card small{color:var(--mut);font-size:13px}
+.set-card>.ic:last-child{color:var(--mut)}
+.set-top{display:flex;align-items:center;gap:14px;padding:calc(var(--st) + 70px) 20px 4px}
+.set-top h1{font-size:28px;margin:0}
+.set-wrap{padding-bottom:30px}
 .cv.ini b{color:#fff;font-weight:800;font-size:18px;font-size:42cqw;line-height:1;text-shadow:0 2px 10px rgba(0,0,0,.25)}
 .oa.on .ring{background:var(--grad);transform:scale(.93)}
 .oa .chk{position:absolute;top:0;right:4px;width:28px;height:28px;border-radius:50%;background:var(--grad);display:none;place-items:center;color:#fff;box-shadow:0 0 0 3px var(--bg)}
@@ -661,7 +674,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <symbol id="i-rows" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1.2"/><circle cx="3.5" cy="12" r="1.2"/><circle cx="3.5" cy="18" r="1.2"/></symbol>
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
-  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
   <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.7 4.7 0 0 0 7 18.5z"/><path d="M12 15.5v-5M9.8 12.6 12 10.4l2.2 2.2"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
@@ -2422,9 +2435,13 @@ async function buildForYou() {
   D.forYou = out.slice(0, 40); save('forYou');
   const f = $('#homeFav'); if (f) f.innerHTML = favHTML();
 }
+function preloadImgs(urls, ms) {
+  const l = urls.filter(u => u && !noPic(u));
+  return Promise.race([Promise.all(l.map(u => new Promise(r => { const i = new Image(); i.onload = i.onerror = r; i.src = u; }))), new Promise(r => setTimeout(r, ms))]);
+}
 async function renderHome(soft) {
   const body = $('#homeBody');
-  renderHomeQuick();
+  if (!soft) renderHomeQuick();
   if (!soft || !homeLoaded) body.innerHTML = `<div class="heros"><div class="sk" style="flex:none;width:min(84vw,420px);height:190px;border-radius:26px"></div></div>` + contHTML() + `<div class="list" style="margin-top:18px">${skelRows(3)}</div>` + skelShelf();
   try {
     const [wt, mix] = await Promise.all([topTracks('world'), latinMix().catch(() => null)]);
@@ -2445,7 +2462,7 @@ async function renderHome(soft) {
     if (pls[0]) heros.push({ go: 'dzpl:' + pls[0].id, img: pls[0].picture_xl || pls[0].picture_big || pls[0].picture_medium, tag: 'Playlist destacada', t1: pls[0].title, t2: (pls[0].nb_tracks || '') + ' canciones' });
     if (ars[0]) heros.push({ go: 'artist:' + ars[0].id, img: ars[0].picture_xl || ars[0].picture_big || ars[0].picture_medium, tag: 'Artista del momento', t1: ars[0].name, t2: 'Escucha sus éxitos' });
     if (als[1]) heros.push({ go: 'album:' + als[1].id, img: als[1].cover_xl || als[1].cover_big || als[1].cover_medium, tag: 'En tendencia', t1: als[1].title, t2: (als[1].artist && als[1].artist.name) || '' });
-    body.innerHTML = heroHTML(heros) + contHTML() +
+    const html = heroHTML(heros) + contHTML() +
       `<div id="homeFav" data-sec="songs">${favHTML()}</div>` +
       `<section data-sec="songs"><div class="sh-h"><h2 class="sec">Top de hoy · Mundial</h2><button data-go="chart:world">Ver todo${ic('right')}</button></div><div class="panel">${listHTML(tracks, { name: 'Top Mundial' }, { rank: true, limit: 5 })}</div></section>` +
       (offN ? `<section data-sec="songs"><button class="offcard" data-go="downloads">${ic('download')}<div><b>Tus descargas</b><small>${offN} canciones para escuchar sin internet</small></div></button></section>` : '') +
@@ -2455,6 +2472,10 @@ async function renderHome(soft) {
       shelf(favPl ? 'Playlists para ti' : 'Playlists destacadas', (pl.data || []).map(p => ({ go: 'dzpl:' + p.id, img: p.picture_medium, t1: p.title, t2: (p.nb_tracks ? p.nb_tracks + ' canciones' : (p.user && p.user.name) || 'Playlist') })), 'pls') +
       shelf('Más canciones para ti', more.map(t => ({ go: 'album:' + t.albumId, img: t.cover, t1: t.title, t2: t.artist })), 'albums') +
       `<div class="foot"><b>Música NX</b><br>© 2026 Nexora · Eduard Gamer</div>`;
+    if (soft) await preloadImgs([...heros.map(h => h.img), ...als.slice(0, 3).map(a => a.cover_medium), ...ars.slice(0, 3).map(a => a.picture_medium), ...more.slice(0, 3).map(t => t.cover)], 3500);
+    if (soft) renderHomeQuick();
+    body.innerHTML = html;
+    if (soft) { body.classList.remove('fadein'); void body.offsetWidth; body.classList.add('fadein'); }
     homeLoaded = true; applyHomeFilter(); bindHeroDots();
     if (soft) toast('Inicio actualizado');
     if (D.set.onboarded) buildForYou();
@@ -2469,30 +2490,44 @@ async function renderHome(soft) {
 /* Desliza hacia abajo en Inicio para recargar (salen otros artistas, álbumes y playlists) */
 (() => {
   const v = $('#v-home'), ind = document.createElement('div');
-  ind.id = 'ptr'; ind.innerHTML = ic('refresh'); document.body.appendChild(ind);
-  let y0 = null, dy = 0, busy = false;
-  const dist = () => Math.min(Math.max(dy, 0) * 0.5, 96);
-  v.addEventListener('touchstart', e => { y0 = (v.scrollTop <= 0 && !busy && e.touches.length === 1) ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+  ind.id = 'ptr'; ind.innerHTML = `<svg class="ic"><use href="#i-down"/></svg><i class="ring"></i>`; document.body.appendChild(ind);
+  const DEAD = 28, NEED = 76;                    // hay que bajar el dedo unos 220 px para recargar
+  let x0 = 0, y0 = null, dy = 0, mode = '', busy = false;
+  const dist = () => Math.min(Math.max(dy - DEAD, 0) * 0.4, 110);
+  const reset = () => { ind.className = ''; ind.style.transform = ''; };
+  v.addEventListener('touchstart', e => {
+    mode = ''; dy = 0;
+    y0 = (!busy && v.scrollTop <= 0 && e.touches.length === 1) ? e.touches[0].clientY : null;
+    if (y0 != null) x0 = e.touches[0].clientX;
+  }, { passive: true });
   v.addEventListener('touchmove', e => {
     if (y0 == null) return;
-    dy = e.touches[0].clientY - y0;
-    if (dy <= 0 || v.scrollTop > 0) { ind.className = ''; ind.style.transform = ''; return; }
+    const t = e.touches[0], mx = t.clientX - x0;
+    dy = t.clientY - y0;
+    if (!mode) {                                 // decide la dirección del gesto
+      if (Math.abs(mx) < 10 && Math.abs(dy) < 10) return;
+      mode = (dy > 0 && Math.abs(dy) > Math.abs(mx) * 1.6 && v.scrollTop <= 0) ? 'pull' : 'no';
+    }
+    if (mode !== 'pull' || v.scrollTop > 0) { reset(); return; }
     const d = dist();
-    ind.className = 'drag' + (d >= 64 ? ' ready' : '');
-    ind.style.transform = `translate(-50%, ${d}px) rotate(${d * 4}deg)`;
+    if (d <= 0) { reset(); return; }
+    ind.className = 'drag' + (d >= NEED ? ' ready' : '');
+    ind.style.transform = `translate(-50%, ${d}px)`;
+    ind.style.setProperty('--rot', (d >= NEED ? 180 : d / NEED * 150) + 'deg');
   }, { passive: true });
-  v.addEventListener('touchend', async () => {
+  const end = async () => {
     if (y0 == null) return;
-    y0 = null;
-    const d = dist();
-    if (d >= 64 && !busy && navigator.onLine) {
-      busy = true; vib(12);
-      ind.className = 'spin'; ind.style.transform = 'translate(-50%, 64px)';
-      try { await renderHome(true); } catch (e) {}
-      busy = false;
-    } else if (d >= 64) toast('Sin conexión');
-    ind.className = ''; ind.style.transform = '';
-  });
+    const ok = mode === 'pull' && dist() >= NEED;
+    y0 = null; mode = '';
+    if (!ok) { reset(); return; }
+    if (!navigator.onLine) { reset(); toast('Sin conexión'); return; }
+    busy = true; vib(12);
+    ind.className = 'spin'; ind.style.transform = 'translate(-50%, 64px)';
+    try { await renderHome(true); } catch (e) {}
+    busy = false; reset();
+  };
+  v.addEventListener('touchend', end);
+  v.addEventListener('touchcancel', () => { y0 = null; mode = ''; reset(); });
 })();
 function applyHomeFilter() {
   $$('#homeChips button').forEach(c => c.classList.toggle('on', c.dataset.f === homeF));
@@ -2673,21 +2708,15 @@ $('#photoIn').addEventListener('change', () => {
 });
 
 /* ---------- Perfil ---------- */
-function renderMe() {
-  const mins = Math.round(D.stats.secs / 60);
-  const top = topPlayed(5);
+/* ---------- Configuración (antes estaba abajo en Perfil) ---------- */
+function settingsHTML() {
   const sw = Object.entries(ACCENTS).map(([k, v]) => `<button data-acc="${k}" class="${D.set.accent === k ? 'on' : ''}" style="background:linear-gradient(135deg,${v[0]},${v[1]})" aria-label="Color ${v[2]}"></button>`).join('');
-  $('#meBody').innerHTML = `<div class="banner" id="meBanner"></div><button class="bn-edit" id="bnEdit">${ic('palette')}Fondo</button><div class="me-head"><button class="me-av" id="meAv" aria-label="Cambiar foto de perfil"><span class="avatar">${avatarHTML()}</span><span class="cam">${ic('camera')}</span></button><h2>${esc(D.set.name || 'Tu perfil')}</h2>
-    <button class="btn" id="meEdit">${ic('edit')}Editar perfil</button></div>
-    ${acctHTML()}
-    <div class="stats"><div class="stat"><b>${fmtN(D.stats.plays)}</b><small>Reproducciones</small></div><div class="stat"><b>${fmtN(mins)}</b><small>Minutos</small></div>
-      <div class="stat"><b>${D.likes.length}</b><small>Me gusta</small></div><div class="stat"><b>${D.pls.length}</b><small>Playlists</small></div></div>
-    ${top.length ? `<div class="sh-h" style="margin-top:8px"><h2 class="sec">Lo que más escuchas</h2></div>${listHTML(top, { name: 'Lo que más escuchas' }, { rank: true })}` : ''}
+  return `<div class="set-wrap">
     ${NAT ? `<div class="sh-h"><h2 class="sec">Reproducción</h2></div>
     <div class="menu">
       <button class="mi" data-m="engine"><span class="ico" style="background:linear-gradient(135deg,#FF4D8D,#8B5CFF)">${ic('music')}</span><div class="meta"><div class="t1">Motor NX (yt-dlp)</div><small id="engSub">${esc(engineText())}</small></div>${ic('right')}</button>
     </div>` : ''}
-    <div class="sh-h"><h2 class="sec">Ajustes</h2></div>
+    <div class="sh-h"><h2 class="sec">Personalizar y datos</h2></div>
     <div class="menu">
       <div class="mi" style="border:0;padding-bottom:6px"><span class="ico" style="background:var(--grad)">${ic('palette')}</span><div class="meta"><div class="t1">Color de la app</div><small>${esc((ACCENTS[D.set.accent] || ACCENTS.nx)[2])}</small></div></div>
       <div class="sw">${sw}</div>
@@ -2706,8 +2735,27 @@ function renderMe() {
       <button class="mi" data-m="upd"><span class="ico" style="background:#F59E0B">${ic('update')}</span><div class="meta"><div class="t1">Buscar actualizaciones</div><small>Versión ${esc(appVersion())}</small></div>${ic('right')}</button>
       <button class="mi" data-m="about"><span class="ico" style="background:#8B5CF6">${ic('info')}</span><div class="meta"><div class="t1">Acerca de Música NX</div><small>Créditos y licencia</small></div>${ic('right')}</button>
     </div>
+    <div class="foot"><b>Música NX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer</div></div>`;
+}
+function openSettings() {
+  const el = pushPage(`<div class="set-top"><span class="ico">${ic('gear')}</span><h1>Configuración</h1></div><div id="setBody">${settingsHTML()}</div>`, 'Configuración');
+  el._kind = 'settings';
+  el.addEventListener('click', meAction);
+}
+function renderMe() {
+  const mins = Math.round(D.stats.secs / 60);
+  const top = topPlayed(5);
+  $('#meBody').innerHTML = `<div class="banner" id="meBanner"></div><button class="bn-edit" id="bnEdit">${ic('palette')}Fondo</button><button class="bn-edit bn-set" id="bnSet" aria-label="Configuración">${ic('gear')}Configuración</button><div class="me-head"><button class="me-av" id="meAv" aria-label="Cambiar foto de perfil"><span class="avatar">${avatarHTML()}</span><span class="cam">${ic('camera')}</span></button><h2>${esc(D.set.name || 'Tu perfil')}</h2>
+    <button class="btn" id="meEdit">${ic('edit')}Editar perfil</button></div>
+    ${acctHTML()}
+    <div class="stats"><div class="stat"><b>${fmtN(D.stats.plays)}</b><small>Reproducciones</small></div><div class="stat"><b>${fmtN(mins)}</b><small>Minutos</small></div>
+      <div class="stat"><b>${D.likes.length}</b><small>Me gusta</small></div><div class="stat"><b>${D.pls.length}</b><small>Playlists</small></div></div>
+    ${top.length ? `<div class="sh-h" style="margin-top:8px"><h2 class="sec">Lo que más escuchas</h2></div>${listHTML(top, { name: 'Lo que más escuchas' }, { rank: true })}` : ''}
+    <button class="set-card" id="meSet"><span class="ico">${ic('gear')}</span><div class="meta"><b>Configuración</b><small>Color, nube, descargas, reproducción y más</small></div>${ic('right')}</button>
     <div class="foot"><b>Música NX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
   $('#meEdit').onclick = profileSheet;
+  $('#bnSet').onclick = openSettings; $('#meSet').onclick = openSettings;
+  const sb = $('#setBody'); if (sb) sb.innerHTML = settingsHTML();
   const ab = $('#acctBtn'); if (ab) ab.onclick = () => isSigned() ? logoutSheet() : openAuth(false);
   paintBanner($('#meBanner'));
   $('#bnEdit').onclick = bannerSheet;
@@ -2755,7 +2803,8 @@ $('#libChips').onclick = e => { const c = e.target.closest('[data-f]'); if (!c) 
 $('#homeAvatar').onclick = () => switchTab('me');
 $('#libAvatar').onclick = () => switchTab('me');
 $('#libAdd').onclick = () => createPlaylist();
-$('#meBody').onclick = e => {
+$('#meBody').onclick = e => meAction(e);
+function meAction(e) {
   const a = e.target.closest('[data-acc]');
   if (a) { D.set.accent = a.dataset.acc; save('set'); applyAccent(); renderMe(); return; }
   const m = e.target.closest('[data-m]'); if (!m) return;
