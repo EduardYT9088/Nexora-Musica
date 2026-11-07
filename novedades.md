@@ -1,4 +1,10 @@
-Versión: 1.6.1
+Versión: 1.6.2
+- Arreglado: algunas canciones se quedaban cargando y no empezaban a sonar
+- Las canciones empiezan mucho más rápido: nuevo reproductor (ExoPlayer) que suena con medio segundo de audio
+- Las canciones que ya escuchaste se recuerdan y vuelven a sonar al instante, aunque cierres la app
+- La canción se empieza a preparar apenas tocas la pantalla, y las primeras de Inicio quedan listas al abrir
+- Artistas sin foto: ya no salen colaboraciones vacías al elegir favoritos; los que no tienen foto muestran su inicial
+- Se quitó el inicio de sesión con número de teléfono (quedan Google, correo e invitado)
 - Arreglado: la app ahora sí avisa cuando subes una versión nueva (buscaba en el repositorio equivocado)
 - Mensajes de error más claros al iniciar sesión con teléfono
 - Al entrar: inicia sesión con Google, correo o teléfono, o entra como invitado

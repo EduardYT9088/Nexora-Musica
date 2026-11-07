@@ -530,6 +530,9 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .oa{text-align:center;position:relative;min-width:0}
 .oa .ring{width:100%;aspect-ratio:1;border-radius:50%;padding:3px;background:rgba(255,255,255,.08);transition:transform .2s,background .2s}
 .oa .ring .cv{width:100%;height:100%;border-radius:50%}
+.cv.ini{display:flex;align-items:center;justify-content:center;container-type:inline-size}
+.cv.ini::before{display:none}
+.cv.ini b{color:#fff;font-weight:800;font-size:18px;font-size:42cqw;line-height:1;text-shadow:0 2px 10px rgba(0,0,0,.25)}
 .oa.on .ring{background:var(--grad);transform:scale(.93)}
 .oa .chk{position:absolute;top:0;right:4px;width:28px;height:28px;border-radius:50%;background:var(--grad);display:none;place-items:center;color:#fff;box-shadow:0 0 0 3px var(--bg)}
 .oa .chk .ic{width:16px;height:16px;stroke-width:3}
@@ -795,7 +798,6 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <p>Inicia sesión para descargar música, poner tu foto y guardar tu perfil.</p>
       <button class="au-btn main" data-au="google"><span class="sq" style="background:linear-gradient(135deg,#4285F4,#34A853)"><svg class="ic"><use href="#i-user"/></svg></span>Continuar con Google<svg class="ic"><use href="#i-right"/></svg></button>
       <button class="au-btn" data-au="email"><span class="sq" style="background:linear-gradient(135deg,#8B5CF6,#EC4899)"><svg class="ic"><use href="#i-mail"/></svg></span>Continuar con correo<svg class="ic"><use href="#i-right"/></svg></button>
-      <button class="au-btn" data-au="phone"><span class="sq" style="background:linear-gradient(135deg,#22C55E,#0EA5E9)"><svg class="ic"><use href="#i-phone"/></svg></span>Continuar con número de teléfono<svg class="ic"><use href="#i-right"/></svg></button>
       <div class="au-or">o</div>
       <button class="au-guest" data-au="guest">Entrar como invitado</button>
       <p class="au-msg" id="auMsg"></p>
@@ -984,7 +986,11 @@ let toastT;
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2300); }
 
 /* ---------- Piezas de interfaz ---------- */
-const imgTag = src => src ? `<img src="${esc(src)}" alt="" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">` : '';
+const noPic = u => !u || /\/images\/(artist|cover|playlist|user)\/\//.test(u);   // imagen vacía de Deezer
+const isCollab = n => /\s(&|x|y|con|feat\.?|ft\.?|and|vs\.?)\s|,|\s\/\s/i.test(n || '');
+const goodArtists = l => (l || []).filter(a => a && !(noPic(a.picture_medium) && isCollab(a.name))).sort((x, y) => noPic(x.picture_medium) - noPic(y.picture_medium));
+const avTag = (name, src, cls = '') => noPic(src) ? `<div class="cv ini ${cls}" style="background:linear-gradient(135deg,${hashColor(name).replace('30%)', '52%)')},${hashColor(name + '*')})"><b>${esc((String(name || '?').trim()[0] || '?').toUpperCase())}</b></div>` : cvTag(src, cls);
+const imgTag = src => !noPic(src) ? `<img src="${esc(src)}" alt="" loading="lazy" onload="this.classList.add('ok')" onerror="this.remove()">` : '';
 const cvTag = (src, cls = '') => `<div class="cv ${cls}">${imgTag(src)}</div>`;
 const eqIcon = '<span class="eqm"><i></i><i></i><i></i></span>';
 const isLiked = id => D.likes.some(x => x.id === id);
@@ -1180,9 +1186,31 @@ function natInfo(t, r, pos) {
     art: t.big || t.cover || '', pos: Math.max(0, Math.round((pos || 0) * 1000)) });
 }
 /* Canciones ya preparadas: suenan al instante (id → {vid, nat, at}) */
-const READY = new Map();
-function readyGet(t) { const x = t && READY.get(t.id); if (x && Date.now() - x.at < 3 * 3600e3) return x; if (t) READY.delete(t.id); return null; }
-function readySet(t, vid, nat) { READY.delete(t.id); READY.set(t.id, { vid, nat, at: Date.now() }); if (READY.size > 80) READY.delete(READY.keys().next().value); }
+const READY = new Map(Object.entries(S.get('ready', {})).map(([k, v]) => [k, Object.assign(v, { disk: true })]));
+const CANDS = new Map();                         // videos encontrados para cada canción
+const urlExp = u => { const m = /[?&]expire=(\d+)/.exec(u || ''); return m ? +m[1] * 1000 : 0; };
+function readyGet(t) {
+  if (!t) return null;
+  const k = String(t.id), x = READY.get(k);
+  if (x && x.nat && x.nat.url) {
+    const exp = urlExp(x.nat.url), now = Date.now();
+    if (exp ? now < exp - 15 * 60e3 : now - x.at < 3 * 3600e3) return x;
+  }
+  if (x) { READY.delete(k); saveReady(); }
+  return null;
+}
+function readySet(t, vid, nat) {
+  const k = String(t.id);
+  READY.delete(k); READY.set(k, { vid, nat: { url: nat.url, ua: nat.ua || '' }, at: Date.now() });
+  while (READY.size > 150) READY.delete(READY.keys().next().value);
+  saveReady();
+}
+function readyDrop(t) { if (t && READY.delete(String(t.id))) saveReady(); }
+let readyT;
+function saveReady() {
+  clearTimeout(readyT);
+  readyT = setTimeout(() => { const o = {}; READY.forEach((v, k) => { o[k] = { vid: v.vid, nat: v.nat, at: v.at }; }); S.set('ready', o); }, 800);
+}
 /** Audio de la canción: primero el motor rápido (1-2 s) con 2 videos; si falla, yt-dlp de respaldo. */
 async function resolveTrack(t, ids) {
   for (const vid of ids.slice(0, 2)) {
@@ -1202,15 +1230,16 @@ function prepare(t) {
   if (preparing.has(t.id)) return preparing.get(t.id);
   const job = (async () => {
     let ids = await candidates(t);
+    CANDS.set(t.id, ids);
     let res = ids.length ? await resolveTrack(t, ids) : null;
     if (!res && D.yt[t.id] && A.ytSearch) {          // el video guardado ya no sirve: busca otro
       delete D.yt[t.id];
-      try { ids = (await ytFind(t)).filter(x => !ids.includes(x)); if (ids.length) res = await resolveTrack(t, ids); } catch (e) {}
+      try { ids = (await ytFind(t)).filter(x => !ids.includes(x)); if (ids.length) { CANDS.set(t.id, ids); res = await resolveTrack(t, ids); } } catch (e) {}
     }
     if (!res) return null;
     if (D.yt[t.id] !== res.vid) { D.yt[t.id] = res.vid; trimYt(); save('yt'); }
     readySet(t, res.vid, res.r);
-    return READY.get(t.id);
+    return READY.get(String(t.id));
   })().finally(() => preparing.delete(t.id));
   preparing.set(t.id, job);
   return job;
@@ -1262,9 +1291,30 @@ function extendQueue() {
   })();
   return extending;
 }
+function botHint() {
+  if (P.botToast || P.eng.logged || !/verificaci/i.test(P.lastErr || '')) return;
+  P.botToast = true; toast('YouTube pidió verificación. Inicia sesión en Perfil → Cuenta de YouTube');
+}
+/** Pasa la canción del reproductor de YouTube al motor NX (sigue sonando con la app cerrada). */
+function handoffToNative(force) {
+  if (!NAT || !P.nat || !P.cur || P.video || P.src === 'nat') return;
+  if (P.userPaused && !force) return;
+  const from = P.src;
+  let pos = 0;
+  if (from === 'yt') { try { pos = P.yt.getCurrentTime() || 0; } catch (e) {} }
+  if (from === 'yt' && P.playing) { P.handoff = true; A.audioPlay(natInfo(P.cur, P.nat, pos + 0.3)); }
+  else {
+    try { P.yt && P.yt.stopVideo && P.yt.stopVideo(); } catch (e) {}
+    try { audio.pause(); } catch (e) {}
+    P.src = 'nat'; P.handoff = false; setLoading(true);
+    A.audioPlay(natInfo(P.cur, P.nat, from === 'yt' ? pos : 0));
+  }
+  updateSrc();
+}
 async function natFailed() {
   const t = P.cur, tok = P.tok, pos = P.pos;
-  READY.delete(t.id);
+  readyDrop(t);
+  if (P.natDisk) { P.natDisk = false; P.natRetry = t.id; loadCur(); return; }   // enlace viejo: lo prepara de nuevo
   P.nat = null; P.src = ''; P.handoff = false;
   if (P.vid && await ytReady()) {
     if (tok !== P.tok) return;
@@ -1314,7 +1364,7 @@ function onNative(e) {
     const t = P.q[idx], pf = readyGet(t);
     P.i = idx; P.tok++;
     P.cur = t; P.pos = 0; P.dur = t.dur || 0; P.src = 'nat'; P.handoff = false; P.userPaused = false;
-    P.nat = pf ? pf.nat : null; P.vid = pf ? pf.vid : (D.yt[t.id] || ''); P.cands = P.vid ? [P.vid] : [];
+    P.nat = pf ? pf.nat : null; P.natDisk = !!(pf && pf.disk); P.vid = pf ? pf.vid : (D.yt[t.id] || ''); P.cands = P.vid ? [P.vid] : [];
     setLoading(true); updateNowUI(); pushHistory(t); loadLyrics(t, P.tok); markRows(); updateSrc(); prefetchNext();
     return;
   }
@@ -1348,6 +1398,27 @@ audio.addEventListener('waiting', () => { if (P.src === 'pv') setLoading(true); 
 audio.addEventListener('ended', () => { if (P.src === 'pv') onEnded(); });
 audio.addEventListener('error', () => { if (P.src === 'pv' && audio.getAttribute('src')) { setLoading(false); setPlaying(false); toast('No se pudo reproducir. Revisa tu conexión.'); } });
 
+/* Al apoyar el dedo en una canción ya se empieza a preparar: al soltarlo suena antes */
+document.addEventListener('pointerdown', e => {
+  if (!NAT) return;
+  const row = e.target.closest && e.target.closest('.row[data-i]'); if (!row || e.target.closest('[data-more],[data-dl]')) return;
+  const l = row.closest('[data-l]'), L = l && LISTS.get(l.dataset.l), t = L && L.tracks[+row.dataset.i];
+  if (t && !offPath(t) && !readyGet(t)) prepare(t).catch(() => {});
+}, { passive: true, capture: true });
+/* Deja listas las primeras canciones de Inicio (y despierta el motor rápido) */
+let warmed = false;
+async function warmUp(extra) {
+  if (!NAT || warmed || !navigator.onLine) return;
+  warmed = true;
+  const list = [...(D.hist[0] ? [D.hist[0]] : []), ...FAVLIST.slice(0, 2), ...(extra || []).slice(0, 1)];
+  const seen = new Set();
+  for (const t of list) {
+    if (!t || seen.has(t.id) || offPath(t) || readyGet(t)) continue;
+    seen.add(t.id);
+    if (P.resolving) break;                      // el usuario ya eligió algo: no le quita velocidad
+    try { await prepare(t); } catch (e) {}
+  }
+}
 function playList(list, i, ctx) {
   if (!list || !list.length) return;
   P.list = list.slice(); P.ctx = ctx || null;
@@ -1375,53 +1446,41 @@ async function loadCur() {
     }
     // 1) Ya estaba preparada: suena al instante con el motor NX
     const hit = readyGet(t);
-    if (hit && hit.nat) {
-      P.vid = hit.vid; P.cands = [hit.vid]; P.nat = hit.nat; P.src = 'nat';
+    if (hit && hit.nat && P.natRetry !== t.id) {
+      P.vid = hit.vid; P.cands = [hit.vid]; P.nat = hit.nat; P.src = 'nat'; P.natDisk = !!hit.disk;
       A.audioPlay(natInfo(t, hit.nat, 0)); updateSrc(); prefetchNext();
       return;
     }
-    // Se estaba preparando en segundo plano (la siguiente de la cola): espera ese mismo trabajo
-    if (preparing.has(t.id)) {
-      P.resolving = true; updateSrc();
-      const x = await preparing.get(t.id).catch(() => null);
-      if (tok !== P.tok) return;
-      P.resolving = false;
-      if (x && x.nat) { P.vid = x.vid; P.cands = [x.vid]; P.nat = x.nat; P.src = 'nat'; A.audioPlay(natInfo(t, x.nat, 0)); updateSrc(); prefetchNext(); return; }
-    }
-    // 2) La busca y la prepara con el motor rápido (1-2 s)
-    P.resolving = true; updateSrc();
-    let ids = D.yt[t.id] ? [D.yt[t.id]] : [];
-    if (!ids.length && A.ytSearch) { P.searched = true; try { ids = await ytFind(t); } catch (e) { ids = []; } }
-    if (tok !== P.tok) return;
-    if (!ids.length) { P.resolving = false; playPreview(t); return; }
-    P.cands = ids; P.vid = ids[0];
-    // Si tarda más de 3,5 s, suena mientras tanto con el reproductor de YouTube
+    P.natRetry = null;
+    // 2) La busca y la prepara con el motor rápido (o espera la que ya se estaba preparando)
+    P.resolving = true; P.searched = !D.yt[t.id]; updateSrc();
+    if (D.yt[t.id]) { P.cands = [D.yt[t.id]]; P.vid = P.cands[0]; }
+    // Si tarda más de 3 s, suena mientras tanto con el reproductor de YouTube
     const interim = setTimeout(() => {
       if (tok !== P.tok || P.src || !P.resolving) return;
+      const c = P.cands.length ? P.cands : (CANDS.get(t.id) || []);
+      if (!c.length) return;
+      P.cands = c;
       ytReady().then(ok => {
         if (!ok || tok !== P.tok || P.src || !P.resolving || P.ytDead) return;
         P.src = 'yt'; P.ci = 0; P.yt.loadVideoById(P.cands[0]); updateSrc();
       });
-    }, 3500);
-    let res = await resolveTrack(t, ids);
-    if (!res && !P.searched && A.ytSearch && tok === P.tok) {     // el video guardado ya no sirve: busca otro
-      P.searched = true;
-      try { const more = (await ytFind(t)).filter(x => !ids.includes(x)); if (more.length && tok === P.tok) { P.cands = more; res = await resolveTrack(t, more); } } catch (e) {}
-    }
+    }, 3000);
+    const res = await prepare(t).catch(() => null);
     clearTimeout(interim);
     if (tok !== P.tok) return;
     P.resolving = false;
-    if (res) {
-      if (D.yt[t.id] !== res.vid) { D.yt[t.id] = res.vid; trimYt(); save('yt'); }
-      readySet(t, res.vid, res.r);
-      P.nat = res.r; P.vid = res.vid;
+    const found = CANDS.get(t.id);
+    if (!P.src && found && found.length) P.cands = found;
+    if (res && res.nat) {
+      P.nat = res.nat; P.vid = res.vid; P.natDisk = false;
       handoffToNative(!P.src || P.src === 'pv');
       prefetchNext();
     } else {
       botHint();
       if (!P.src) {
         try { A.audioStop(); } catch (e) {}
-        if (!P.ytDead && await ytReady() && tok === P.tok && !P.src) { P.src = 'yt'; P.ci = 0; P.yt.loadVideoById(P.cands[0]); }
+        if (P.cands.length && !P.ytDead && await ytReady() && tok === P.tok && !P.src) { P.src = 'yt'; P.ci = 0; P.yt.loadVideoById(P.cands[0]); }
         else if (tok === P.tok && !P.src) playPreview(t);
       }
     }
@@ -2308,6 +2367,7 @@ async function renderHome() {
       `<div class="foot"><b>Música NX</b><br>© 2026 Nexora · Eduard Gamer</div>`;
     homeLoaded = true; applyHomeFilter(); bindHeroDots();
     if (D.set.onboarded) buildForYou();
+    setTimeout(() => warmUp(tracks), 1500);
   } catch (e) {
     const offN = Object.keys(D.offline).length;
     body.innerHTML = (offN || !navigator.onLine ? `<button class="offcard" data-go="downloads">${ic('wifioff')}<div><b>Sin conexión</b><small>${offN ? `Escucha tus ${offN} descargas` : 'Descarga canciones para escucharlas sin internet'}</small></div></button>` : '') + contHTML() + errBox(e.message, 'home');
@@ -2374,7 +2434,7 @@ async function doSearch(q) {
   try {
     const [tr, ar, al] = await Promise.all([dz(`/search?q=${enc(q)}&limit=30`), dz(`/search/artist?q=${enc(q)}&limit=10`), dz(`/search/album?q=${enc(q)}&limit=12`)]);
     if (tok !== searchTok) return;
-    lastRes = { q, tracks: (tr.data || []).map(T), artists: ar.data || [], albums: al.data || [] };
+    lastRes = { q, tracks: (tr.data || []).map(T), artists: goodArtists(ar.data), albums: al.data || [] };
     renderResults();
   } catch (e) { if (tok === searchTok) body.innerHTML = errBox(e.message, 'search'); }
 }
@@ -2394,7 +2454,7 @@ function renderResults() {
     html += shelf('Artistas', r.artists.map(artistCard));
     html += shelf('Álbumes', r.albums.map(albumCard));
   } else if (searchF === 'songs') html += listHTML(r.tracks, ctx);
-  else if (searchF === 'artists') html += r.artists.map(a => `<button class="lrow" data-go="artist:${a.id}">${cvTag(a.picture_medium, 'r')}<div class="meta"><div class="t1">${esc(a.name)}</div><div class="t2">Artista · ${fmtN(a.nb_fan)} fans</div></div></button>`).join('');
+  else if (searchF === 'artists') html += r.artists.map(a => `<button class="lrow" data-go="artist:${a.id}">${avTag(a.name, a.picture_medium, 'r')}<div class="meta"><div class="t1">${esc(a.name)}</div><div class="t2">Artista · ${fmtN(a.nb_fan)} fans</div></div></button>`).join('');
   else html += r.albums.map(a => `<button class="lrow" data-go="album:${a.id}">${cvTag(a.cover_medium)}<div class="meta"><div class="t1">${esc(a.title)}</div><div class="t2">Álbum · ${esc(a.artist && a.artist.name)}</div></div></button>`).join('');
   body.innerHTML = html;
   $$('.lrow .cv.r', body).forEach(c => c.style.borderRadius = '50%');
@@ -2857,7 +2917,7 @@ async function openOnb(must) {
   if (!ONB.pool.length) {
     $('#onbGrid').innerHTML = Array.from({ length: 12 }, () => '<div class="oa"><div class="sk" style="width:100%;aspect-ratio:1;border-radius:50%"></div><div class="sk" style="height:12px;width:70%;margin:10px auto 0"></div></div>').join('');
     onbBar();
-    try { ONB.pool = (await popularArtists()).map(a => ({ id: a.id, name: a.name, img: a.picture_medium })); }
+    try { ONB.pool = (await popularArtists()).filter(a => !noPic(a.picture_medium)).map(a => ({ id: a.id, name: a.name, img: a.picture_medium })); }
     catch (e) { $('#onbGrid').innerHTML = `<div style="grid-column:1/-1">${errBox('Revisa tu conexión a internet.', 'onb')}</div>`; return; }
   }
   renderOnbGrid(ONB.pool);
@@ -2867,13 +2927,13 @@ function renderOnbGrid(list) {
   const extra = list === ONB.pool ? [...ONB.sel.values()].filter(a => !list.some(x => x.id === a.id)) : [];
   const all = [...extra, ...list];
   ONB.view = all;
-  $('#onbGrid').innerHTML = all.length ? all.map(a => `<button class="oa${ONB.sel.has(a.id) ? ' on' : ''}" data-oa="${a.id}"><div class="ring">${cvTag(a.img)}</div><i class="chk">${ic('check')}</i><span>${esc(a.name)}</span></button>`).join('')
+  $('#onbGrid').innerHTML = all.length ? all.map(a => `<button class="oa${ONB.sel.has(a.id) ? ' on' : ''}" data-oa="${a.id}"><div class="ring">${avTag(a.name, a.img)}</div><i class="chk">${ic('check')}</i><span>${esc(a.name)}</span></button>`).join('')
     : `<div class="empty" style="grid-column:1/-1">${ic('search')}<b>Sin resultados</b>Prueba con otro nombre.</div>`;
   onbBar();
 }
 function onbBar() {
   const n = ONB.sel.size, last = [...ONB.sel.values()].slice(-5);
-  $('#onbSel').innerHTML = last.map(a => cvTag(a.img)).join('') + (n ? `<b>${n}</b>` : '<span style="color:var(--mut);font-size:13.5px">Ninguno elegido</span>');
+  $('#onbSel').innerHTML = last.map(a => avTag(a.name, a.img)).join('') + (n ? `<b>${n}</b>` : '<span style="color:var(--mut);font-size:13.5px">Ninguno elegido</span>');
   const go = $('#onbGo'); go.disabled = n < 4; go.textContent = n < 4 ? `Elige ${4 - n} más` : `Continuar (${n})`;
 }
 async function finishOnb() {
@@ -2893,7 +2953,7 @@ $('#onbQ').addEventListener('input', () => {
   const q = $('#onbQ').value.trim(), tok = ++ONB.tok;
   if (!q) { renderOnbGrid(ONB.pool); return; }
   onbT = setTimeout(async () => {
-    try { const j = await dz(`/search/artist?q=${enc(q)}&limit=30`); if (tok === ONB.tok) renderOnbGrid((j.data || []).map(a => ({ id: a.id, name: a.name, img: a.picture_medium }))); }
+    try { const j = await dz(`/search/artist?q=${enc(q)}&limit=30`); if (tok === ONB.tok) renderOnbGrid(goodArtists(j.data).map(a => ({ id: a.id, name: a.name, img: a.picture_medium }))); }
     catch (e) { if (tok === ONB.tok) $('#onbGrid').innerHTML = `<div style="grid-column:1/-1">${errBox('Revisa tu conexión a internet.', 'onb')}</div>`; }
   }, 350);
 });
