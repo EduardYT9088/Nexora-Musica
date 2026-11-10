@@ -678,6 +678,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></symbol>
   <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.3 6.3a8 8 0 0 1 0 11.4"/></symbol>
   <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.6 9.1 4.7 4.7 0 0 0 7 18.5z"/><path d="M12 15.5v-5M9.8 12.6 12 10.4l2.2 2.2"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
@@ -1911,6 +1912,14 @@ function createPlaylist(cb) {
     cb ? cb(pl) : openUserPl(pl.id);
   });
 }
+/* Volumen extra: sube la música por encima del 100 % (con limitador para que no se rompa el sonido) */
+function applyBoost() { try { if (NAT && A.audioBoost) A.audioBoost(D.set.boost || 100); } catch (e) {} }
+function boostSheet() {
+  const cur = D.set.boost || 100;
+  const items = [100, 150, 200, 250, 300].map(v => ({ ic: v === cur ? 'check' : 'vol', label: v === 100 ? 'Normal (100 %)' : v + ' %' + (v === 300 ? ' · máximo' : ''),
+    fn: () => { D.set.boost = v; save('set'); applyBoost(); renderMe(); toast(v === 100 ? 'Volumen normal' : 'Volumen extra al ' + v + ' %'); } }));
+  actionSheet('<div class="sh-title">Volumen extra</div><p class="sh-p">Sube la música más allá del volumen máximo del teléfono. A más de 200 % algunas canciones pueden sonar un poco saturadas.</p>', items);
+}
 function timerSheet() {
   const opts = [5, 15, 30, 45, 60, 90];
   const items = opts.map(m => ({ ic: 'clock', label: m + ' minutos', fn: () => { setSleep(m); toast(`La música se detendrá en ${m} min`); } }));
@@ -2744,6 +2753,7 @@ function settingsHTML() {
       <button class="mi" data-m="cloud"><span class="ico" style="background:linear-gradient(135deg,#38BDF8,#6366F1)">${ic('cloud')}</span><div class="meta"><div class="t1">Copia en la nube</div><small id="cloudTxt">${esc(cloudText())}</small></div>${ic('right')}</button>
       <button class="mi" data-m="dls"><span class="ico" style="background:linear-gradient(135deg,#22C55E,#0EA5E9)">${ic('download')}</span><div class="meta"><div class="t1">Descargas</div><small>${Object.keys(D.offline).length} canciones · ${(offSize() / 1048576).toFixed(0)} MB</small></div>${ic('right')}</button>
       <button class="mi" data-m="autoplay"><span class="ico" style="background:#22C55E">${ic('spark')}</span><div class="meta"><div class="t1">Reproducción automática</div><small>Al terminar, más del mismo artista y parecidas</small></div><span class="sw-t${autoplayOn() ? ' on' : ''}" id="apSw"></span></button>
+      ${NAT && A.audioBoost ? `<button class="mi" data-m="boost"><span class="ico" style="background:linear-gradient(135deg,#F97316,#EF4444)">${ic('vol')}</span><div class="meta"><div class="t1">Volumen extra</div><small>${(D.set.boost || 100) > 100 ? 'Al ' + D.set.boost + ' %' : 'Normal (100 %)'}</small></div>${ic('right')}</button>` : ''}
       <button class="mi" data-m="timer"><span class="ico" style="background:#0EA5E9">${ic('timer')}</span><div class="meta"><div class="t1">Temporizador para dormir</div><small>${P.sleepAt ? 'Activo' : P.sleepEnd ? 'Al final de la canción' : 'Desactivado'}</small></div>${ic('right')}</button>
       <button class="mi" data-m="clear"><span class="ico" style="background:#F43F5E">${ic('trash')}</span><div class="meta"><div class="t1">Borrar historial</div><small>Recientes, búsquedas y estadísticas</small></div>${ic('right')}</button>
     </div>
@@ -2828,6 +2838,7 @@ function meAction(e) {
   const k = m.dataset.m;
   if (k === 'hist') openHistory();
   else if (k === 'timer') timerSheet();
+  else if (k === 'boost') boostSheet();
   else if (k === 'priv') openPrivacy();
   else if (k === 'about') aboutSheet();
   else if (k === 'engine') engineSheet();
@@ -3434,6 +3445,7 @@ function restoreNative() {
 
 /* ---------- Inicio de la app ---------- */
 let splashT0 = Date.now();
+setTimeout(applyBoost, 300);
 setTimeout(() => { if (document.body.classList.contains('booting')) hideSplash(); }, 12000);   // por si algo falla al cargar
 let updChecked = false;
 function hideSplash() {

@@ -1,4 +1,6 @@
-Versión: 1.7.1
+Versión: 1.7.2
+- Nuevo: Volumen extra (hasta 300 %) en Configuración → Reproducción
+- El potenciador de volumen y el ecualizador del teléfono ahora también funcionan con Música NX
 - La pantalla de carga ya no se mueve al deslizar el dedo, y la app ya no se estira al llegar arriba o abajo
 - Arreglado: abajo del menú se asomaba un pedazo del reproductor
 - Inicio con música latina: reguetón, urbano y vallenato (Bad Bunny, Anuel, Karol G, Paulo Londra, Camilo, Yatra, Diomedes, Poncho Zuleta y más) junto a tus artistas
