@@ -402,6 +402,10 @@ jobs:
                   current = this
                   root = FrameLayout(this)
                   webView = WebView(this)
+                  // Sin el efecto de estirar/rebotar de Android: la pantalla de carga y el Inicio no se mueven solos
+                  webView.overScrollMode = View.OVER_SCROLL_NEVER
+                  webView.isVerticalScrollBarEnabled = false
+                  webView.isHorizontalScrollBarEnabled = false
                   root.addView(webView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                   setContentView(root)
 
