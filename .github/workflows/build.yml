@@ -157,6 +157,7 @@ jobs:
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
               <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
               <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+              <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
               <!-- Android TV: la app también funciona sin pantalla táctil -->
               <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
               <uses-feature android:name="android.software.leanback" android:required="false" />
@@ -681,6 +682,7 @@ jobs:
                   @JavascriptInterface fun audioSeek(ms: Double) { main.post { AudioService.seek(ms.toLong()) } }
                   @JavascriptInterface fun audioStop() { main.post { AudioService.stop() } }
                   @JavascriptInterface fun audioHalt() { main.post { AudioService.halt() } }
+                  @JavascriptInterface fun audioBoost(percent: Int) { main.post { Px.setBoost(percent) } }
                   @JavascriptInterface fun audioState(): String = AudioService.state().toString()
               }
 
@@ -1422,6 +1424,9 @@ jobs:
           package com.nexora.musicanx
 
           import android.content.Context
+          import android.content.Intent
+          import android.media.audiofx.AudioEffect
+          import android.media.audiofx.LoudnessEnhancer
           import android.net.Uri
           import android.os.Handler
           import android.os.Looper
@@ -1442,7 +1447,17 @@ jobs:
            * desde el hilo principal; posición y duración se pueden leer desde cualquier hilo.
            */
           class Px(c: Context, url: String, ua: String) {
-              companion object { const val SEEK_CLOSEST = 0 }
+              companion object {
+                  const val SEEK_CLOSEST = 0
+                  /** Volumen extra en milibelios (0 = normal, 954 = 300 %). Lo cambia la app con audioBoost. */
+                  @Volatile var boostMb = 0
+                  private val live = java.util.Collections.newSetFromMap(java.util.WeakHashMap<Px, Boolean>())
+                  fun setBoost(percent: Int) {
+                      val pct = percent.coerceIn(100, 300)
+                      boostMb = if (pct <= 100) 0 else (2000.0 * Math.log10(pct / 100.0)).toInt()
+                      synchronized(live) { live.toList() }.forEach { it.applyBoost() }
+                  }
+              }
 
               private val p: ExoPlayer
               private val main = Handler(Looper.getMainLooper())
@@ -1452,6 +1467,9 @@ jobs:
               private var onDone: ((Px) -> Unit)? = null
               private var onErr: ((Px, Int, Int) -> Boolean)? = null
 
+              private val app = c.applicationContext
+              private var louder: LoudnessEnhancer? = null
+              private var session = 0
               @Volatile var currentPosition: Long = 0L; private set
               @Volatile var duration: Long = 0L; private set
 
@@ -1487,6 +1505,18 @@ jobs:
                       }
                   })
                   p.setMediaItem(MediaItem.fromUri(Uri.parse(url)))
+                  session = try { p.audioSessionId } catch (e: Exception) { 0 }
+                  if (session > 0) {
+                      // Avisa a Android que esta es la sesión de música: así el potenciador o ecualizador del teléfono la puede subir
+                      runCatching {
+                          app.sendBroadcast(Intent(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION)
+                              .putExtra(AudioEffect.EXTRA_AUDIO_SESSION, session)
+                              .putExtra(AudioEffect.EXTRA_PACKAGE_NAME, app.packageName)
+                              .putExtra(AudioEffect.EXTRA_CONTENT_TYPE, AudioEffect.CONTENT_TYPE_MUSIC))
+                      }
+                  }
+                  synchronized(live) { live.add(this) }
+                  applyBoost()
                   tick()
               }
 
@@ -1516,9 +1546,29 @@ jobs:
               fun seekTo(ms: Long, @Suppress("UNUSED_PARAMETER") mode: Int) { p.seekTo(ms.coerceAtLeast(0)); currentPosition = ms.coerceAtLeast(0) }
               fun setVolume(l: Float, @Suppress("UNUSED_PARAMETER") r: Float) { p.volume = l }
 
+              /** Sube el volumen por encima del 100 % con un limitador (no se rompe el sonido). */
+              fun applyBoost() {
+                  if (released || session <= 0) return
+                  val mb = boostMb
+                  try {
+                      if (mb <= 0) { louder?.enabled = false; return }
+                      val l = louder ?: LoudnessEnhancer(session).also { louder = it }
+                      l.setTargetGain(mb)
+                      l.enabled = true
+                  } catch (e: Exception) { louder = null }
+              }
+
               fun release() {
                   if (released) return
                   released = true
+                  synchronized(live) { live.remove(this) }
+                  try { louder?.release() } catch (e: Exception) {}
+                  louder = null
+                  if (session > 0) runCatching {
+                      app.sendBroadcast(Intent(AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION)
+                          .putExtra(AudioEffect.EXTRA_AUDIO_SESSION, session)
+                          .putExtra(AudioEffect.EXTRA_PACKAGE_NAME, app.packageName))
+                  }
                   main.removeCallbacksAndMessages(null)
                   onPrep = null; onDone = null; onErr = null
                   try { p.release() } catch (e: Exception) {}
