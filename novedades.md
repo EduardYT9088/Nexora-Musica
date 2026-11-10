@@ -1,4 +1,6 @@
-Versión: 1.7.0
+Versión: 1.7.1
+- La pantalla de carga ya no se mueve al deslizar el dedo, y la app ya no se estira al llegar arriba o abajo
+- Arreglado: abajo del menú se asomaba un pedazo del reproductor
 - Inicio con música latina: reguetón, urbano y vallenato (Bad Bunny, Anuel, Karol G, Paulo Londra, Camilo, Yatra, Diomedes, Poncho Zuleta y más) junto a tus artistas
 - Para recargar Inicio desliza hacia abajo desde "¿Qué suena hoy?": todo baja con el dedo y el círculo gira centrado hasta que carga lo nuevo
 - Nuevo botón "Configuración" en Perfil: ahí están el color, la nube, las descargas, la reproducción y más
