@@ -1,4 +1,4 @@
-name: Construir APK de Música NX
+name: Construir APK de BeatNX
 
 # Plantilla de la Skill "apk-sin-pc".
 # Convierte index.html (y los demás archivos web del repo) en una APK firmada
@@ -570,7 +570,7 @@ jobs:
                               val u = Uri.parse(url)
                               if (u.scheme != "https" || u.host !in ALLOWED_HOSTS) throw Exception("Servidor no permitido")
                               reply(id, true, fetchText(url, mapOf(
-                                  "User-Agent" to "MusicaNX/" + versionName() + " (Android)",
+                                  "User-Agent" to "BeatNX/" + versionName() + " (Android)",
                                   "Accept" to "application/json")))
                           } catch (e: Exception) {
                               reply(id, false, e.message ?: "Sin conexión")
@@ -748,7 +748,7 @@ jobs:
           import java.util.concurrent.TimeUnit
 
           /**
-           * Motor yt-dlp de Música NX.
+           * Motor yt-dlp de BeatNX.
            * Obtiene el enlace de audio de un video de YouTube con un solo método:
            * varios clientes de YouTube a la vez, con la sesión de YouTube si el usuario la guardó.
            */
@@ -992,7 +992,7 @@ jobs:
           import java.net.URL
 
           /**
-           * Reproduce la música de Música NX en segundo plano (con ExoPlayer, ver Px), con controles en la notificación,
+           * Reproduce la música de BeatNX en segundo plano (con ExoPlayer, ver Px), con controles en la notificación,
            * en la pantalla de bloqueo y en los audífonos. Precarga la siguiente canción para que
            * el cambio sea inmediato aunque la app esté cerrada o la pantalla apagada.
            * Todo se llama desde el hilo principal.
@@ -1354,9 +1354,9 @@ jobs:
                       PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                   val n = Notification.Builder(this, CH)
                       .setSmallIcon(R.drawable.ic_launcher_mono)
-                      .setContentTitle(info.optString("title").ifEmpty { "Música NX" })
+                      .setContentTitle(info.optString("title").ifEmpty { "BeatNX" })
                       .setContentText(info.optString("artist"))
-                      .setSubText("Música NX")
+                      .setSubText("BeatNX")
                       .setLargeIcon(art)
                       .setContentIntent(open)
                       .setDeleteIntent(action(ACT_CLOSE, 9))
@@ -1698,7 +1698,7 @@ jobs:
           import java.net.URL
 
           /**
-           * Descarga la nueva versión de Música NX desde GitHub y la instala encima, dentro de la app.
+           * Descarga la nueva versión de BeatNX desde GitHub y la instala encima, dentro de la app.
            * Avisa del avance (bytes descargados y total) para mostrar porcentaje, velocidad y tiempo.
            * Android siempre muestra su ventana de confirmación antes de instalar.
            */
@@ -1722,7 +1722,7 @@ jobs:
                   if (running) return
                   if (!apkUrl.startsWith("https://github.com/")) { emit("error", msg = "Enlace no válido"); return }
                   if (!canInstall(act)) {
-                      // Primero hay que permitir "Instalar apps desconocidas" para Música NX.
+                      // Primero hay que permitir "Instalar apps desconocidas" para BeatNX.
                       emit("perm")
                       openPermission(act)
                       return
@@ -1825,7 +1825,7 @@ jobs:
 
           /**
            * Descargas para escuchar sin internet. Los archivos quedan en la memoria privada de la app
-           * (files/offline/<id>.m4a y <id>.jpg) y solo Música NX los puede reproducir.
+           * (files/offline/<id>.m4a y <id>.jpg) y solo BeatNX los puede reproducir.
            */
           object Offline {
               private val running = ConcurrentHashMap<String, Boolean>()
@@ -1971,7 +1971,7 @@ jobs:
           import java.util.zip.GZIPInputStream;
 
           /**
-           * Motor rápido de Música NX (NewPipe Extractor, Java puro): obtiene el audio de una
+           * Motor rápido de BeatNX (NewPipe Extractor, Java puro): obtiene el audio de una
            * canción en 1-2 segundos, sin arrancar Python. Si falla, Yt usa yt-dlp.
            */
           public final class Np {
@@ -2127,7 +2127,7 @@ jobs:
           APPEOF
           cat > app/src/main/res/values/strings.xml <<'APPEOF'
           <resources>
-              <string name="app_name">Música NX</string>
+              <string name="app_name">BeatNX</string>
           </resources>
           APPEOF
           cat > app/src/main/res/values/themes.xml <<'APPEOF'
@@ -2143,7 +2143,7 @@ jobs:
           mkdir -p app/src/main/assets
           (cd .. && tar cf - --exclude=./.git --exclude=./.github --exclude=./proyecto --exclude='*.md' .) | tar xf - -C app/src/main/assets
 
-      # Firma de Música NX: NO la cambies nunca (si cambia, Android no deja actualizar la app).
+      # Firma de BeatNX: NO la cambies nunca (si cambia, Android no deja actualizar la app).
       # Las contraseñas están en Secrets; sin ellas este archivo no sirve para firmar.
       - name: Firma
         run: echo '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' | base64 -d > proyecto/app/release.jks
@@ -2171,7 +2171,8 @@ jobs:
           # versionCode sale de la versión (1.6.1 -> 10601xxx) y no del número de compilación:
           # así sigue subiendo aunque cambies el nombre del repo o crees uno nuevo.
           pv = [int(x) for x in (ver.split('.') + ['0', '0'])[:3]]
-          code = 10000000 + (pv[0] * 10000 + pv[1] * 100 + pv[2]) * 1000 + run % 1000
+          # Base 30000000: BeatNX 1.0.1 queda por encima de Música NX 1.7.x (Android no deja bajar de número)
+          code = 30000000 + (pv[0] * 10000 + pv[1] * 100 + pv[2]) * 1000 + run % 1000
           # La app busca las actualizaciones en ESTE repo (aunque lo renombres)
           owner, name = os.environ['REPO'].split('/', 1)
           ip = 'proyecto/app/src/main/assets/index.html'
@@ -2188,9 +2189,9 @@ jobs:
           open(p, 'w', encoding='utf-8').write(g)
           base = 'https://github.com/' + os.environ['REPO'] + '/releases/latest/download/'
           info = {'version': ver, 'code': code, 'obligatoria': not opcional, 'novedades': nov,
-                  'apk': base + 'MusicaNX-arm64.apk', 'apk_arm64': base + 'MusicaNX-arm64.apk', 'apk_armv7': base + 'MusicaNX-armv7.apk'}
+                  'apk': base + 'BeatNX-arm64.apk', 'apk_arm64': base + 'BeatNX-arm64.apk', 'apk_armv7': base + 'BeatNX-armv7.apk'}
           json.dump(info, open('version.json', 'w', encoding='utf-8'), ensure_ascii=False)
-          notes = 'Música NX v' + ver + '\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga MusicaNX-arm64.apk (celulares de los últimos años) o MusicaNX-armv7.apk (celulares antiguos y muchos televisores).'
+          notes = 'BeatNX v' + ver + '\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX-arm64.apk (celulares de los últimos años) o BeatNX-armv7.apk (celulares antiguos y muchos televisores).'
           open('release-notes.md', 'w', encoding='utf-8').write(notes)
           open(os.environ['GITHUB_OUTPUT'], 'a').write('version=' + ver + '\n')
           print('Versión', ver, 'código', code)
@@ -2218,16 +2219,16 @@ jobs:
       - name: Renombrar APK
         run: |
           ls proyecto/app/build/outputs/apk/release/
-          cp proyecto/app/build/outputs/apk/release/app-arm64-v8a-release.apk MusicaNX-arm64.apk
-          cp proyecto/app/build/outputs/apk/release/app-armeabi-v7a-release.apk MusicaNX-armv7.apk
+          cp proyecto/app/build/outputs/apk/release/app-arm64-v8a-release.apk BeatNX-arm64.apk
+          cp proyecto/app/build/outputs/apk/release/app-armeabi-v7a-release.apk BeatNX-armv7.apk
 
       - name: Guardar APK en la compilación
         uses: actions/upload-artifact@v4
         with:
-          name: MusicaNX-apk
+          name: BeatNX-apk
           path: |
-            MusicaNX-arm64.apk
-            MusicaNX-armv7.apk
+            BeatNX-arm64.apk
+            BeatNX-armv7.apk
 
       - name: Publicar en Releases
         env:
@@ -2237,9 +2238,9 @@ jobs:
           VER="${{ steps.ver.outputs.version }}"
           TAG="v$VER"
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then TAG="v$VER-build${{ github.run_number }}"; fi
-          gh release create "$TAG" MusicaNX-arm64.apk MusicaNX-armv7.apk version.json \
+          gh release create "$TAG" BeatNX-arm64.apk BeatNX-armv7.apk version.json \
             --repo "$REPO" \
             --target "${{ github.sha }}" \
-            --title "Música NX v$VER" \
+            --title "BeatNX v$VER" \
             --notes-file release-notes.md \
             --latest

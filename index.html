@@ -6,7 +6,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="color-scheme" content="dark">
 <meta name="theme-color" content="#09090F">
-<title>Música NX</title>
+<title>BeatNX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -691,14 +691,14 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 
 <div id="splash" ontouchmove="event.preventDefault()">
   <div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
-  <h1>Música <b>NX</b></h1>
+  <h1>Beat<b>NX</b></h1>
   <small>© 2026 Nexora · Eduard Gamer</small>
 </div>
 
 <main>
   <section class="view active" id="v-home">
     <header class="hdr">
-      <div class="brand"><span class="mark"><i></i><i></i><i></i></span><span>Música <em>NX</em></span></div>
+      <div class="brand"><span class="mark"><i></i><i></i><i></i></span><span>Beat<em>NX</em></span></div>
       <button class="ib glass" id="homeSearch" aria-label="Buscar"><svg class="ic"><use href="#i-search"/></svg></button>
       <button class="avatar" id="homeAvatar" aria-label="Perfil"></button>
     </header>
@@ -763,7 +763,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <div class="pl-scroll" id="plScroll">
     <div class="pl-top">
       <button class="ib" id="plDown" aria-label="Cerrar"><svg class="ic"><use href="#i-down"/></svg></button>
-      <div class="pl-ctx"><small>Sonando ahora</small><b id="plCtx">Música NX</b></div>
+      <div class="pl-ctx"><small>Sonando ahora</small><b id="plCtx">BeatNX</b></div>
       <button class="ib" id="plMore" aria-label="Opciones"><svg class="ic"><use href="#i-more"/></svg></button>
     </div>
     <div class="stage" id="plArt">
@@ -819,7 +819,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <div class="au-box">
     <div class="logo au-logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
     <div class="au-form on" id="auMain">
-      <h1 id="auTitle">Bienvenido a Música NX</h1>
+      <h1 id="auTitle">Bienvenido a BeatNX</h1>
       <p>Inicia sesión para descargar música, poner tu foto y guardar tu perfil.</p>
       <button class="au-btn main" data-au="google"><span class="sq" style="background:linear-gradient(135deg,#4285F4,#34A853)"><svg class="ic"><use href="#i-user"/></svg></span>Continuar con Google<svg class="ic"><use href="#i-right"/></svg></button>
       <button class="au-btn" data-au="email"><span class="sq" style="background:linear-gradient(135deg,#8B5CF6,#EC4899)"><svg class="ic"><use href="#i-mail"/></svg></span>Continuar con correo<svg class="ic"><use href="#i-right"/></svg></button>
@@ -879,7 +879,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
     </div>
     <span class="utag" id="updTag"><svg class="ic"><use href="#i-spark"/></svg>Actualización obligatoria</span>
-    <h2 id="updTitle">Nueva versión de Música NX</h2>
+    <h2 id="updTitle">Nueva versión de BeatNX</h2>
     <p class="uver" id="updVer"></p>
     <ul class="unotes" id="updNotes"></ul>
     <div class="uprog hidden" id="updProg">
@@ -896,7 +896,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 <script>
 'use strict';
 /* =========================================================
-   Música NX · © 2026 Nexora · Eduard Gamer
+   BeatNX · © 2026 Nexora · Eduard Gamer
    ========================================================= */
 const A = window.Android || null;
 const REPO = 'EduardYT9088/Nexora-Musica';   // GitHub lo cambia solo al compilar
@@ -1713,7 +1713,7 @@ async function updateNowUI() {
   $('#mini').classList.add('show');
   $('#miniCv').innerHTML = cvTag(t.cover); $('#miniT').textContent = t.title; $('#miniA').textContent = t.artist;
   $('#plTitle').textContent = t.title; $('#plArtist').textContent = t.artist;
-  $('#plCtx').textContent = (P.ctx && P.ctx.name) || t.album || 'Música NX';
+  $('#plCtx').textContent = (P.ctx && P.ctx.name) || t.album || 'BeatNX';
   const cov = $('#plCover'); cov.style.opacity = ''; cov.src = t.big || t.cover || ''; if (!cov.getAttribute('src')) cov.removeAttribute('src');
   $('#plSeek').value = 0; $('#plSeek').style.setProperty('--p', '0%'); $('#plCur').textContent = '0:00'; $('#plDur').textContent = fmt(t.dur);
   $('#miniRing').style.strokeDashoffset = 125.66;
@@ -1834,7 +1834,7 @@ function toggleFollow(a) {
 }
 function addRecent(it) { D.recent = [it, ...D.recent.filter(x => !(x.type === it.type && x.id === it.id))].slice(0, 12); save('recent'); }
 function shareTrack(t) {
-  const txt = `🎧 Escuchando "${t.title}" de ${t.artist} en Música NX`;
+  const txt = `🎧 Escuchando "${t.title}" de ${t.artist} en BeatNX`;
   if (A && A.share) A.share(txt); else if (navigator.share) navigator.share({ text: txt }).catch(() => {}); else toast('Compartir no disponible aquí');
 }
 
@@ -1946,10 +1946,10 @@ function queueSheet() {
 function appVersion() { try { return A ? JSON.parse(A.appInfo()).version : 'web'; } catch (e) { return '1.0'; } }
 function aboutSheet() {
   openSheet(`<div class="about-box"><div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
-    <h3>Música NX</h3><p>Versión ${esc(appVersion())}</p>
+    <h3>BeatNX</h3><p>Versión ${esc(appVersion())}</p>
     <p>Tu música, con canciones completas, videos y letras sincronizadas en una interfaz propia.</p>
     <p class="copy">© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</p>
-    <p style="font-size:12px">Reproducción: motor NX y reproductor oficial de YouTube · Letras: LRCLIB.<br>Música NX no está afiliada a YouTube ni a Spotify.</p></div>
+    <p style="font-size:12px">Reproducción: motor NX y reproductor oficial de YouTube · Letras: LRCLIB.<br>BeatNX no está afiliada a YouTube ni a Spotify.</p></div>
     <button class="si" data-a="priv">${ic('shield')}<span>Política de privacidad</span></button>
     <button class="si" data-a="upd">${ic('update')}<span>Buscar actualizaciones</span></button>`, sh => sh.onclick = e => {
     const b = e.target.closest('[data-a]'); if (!b) return; closeSheet();
@@ -2019,7 +2019,7 @@ async function openAlbum(id) {
     domHero(el, al.cover_medium, al.title);
     bindActs(el, tracks, ctx, {
       save: b => { const on = toggleSaveAlbum({ id: al.id, title: al.title, img: al.cover_medium, artist: al.artist && al.artist.name }); b.classList.toggle('on', on); b.innerHTML = ic(on ? 'checkc' : 'plusc'); },
-      share: () => { const txt = `💿 "${al.title}" de ${al.artist && al.artist.name} · escúchalo en Música NX`; A && A.share ? A.share(txt) : toast(txt); }
+      share: () => { const txt = `💿 "${al.title}" de ${al.artist && al.artist.name} · escúchalo en BeatNX`; A && A.share ? A.share(txt) : toast(txt); }
     });
   } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openAlbum(id); }; }
 }
@@ -2053,7 +2053,7 @@ async function openArtist(id) {
     bindActs(el, tracks, ctx, {
       follow: b => { const on = toggleFollow({ id: a.id, name: a.name, img: a.picture_medium }); b.textContent = on ? 'Siguiendo' : 'Seguir'; b.classList.toggle('on', on); },
       more5: b => { const l = $('#popPanel .list', el); const open = l.classList.toggle('lim5'); b.textContent = open ? 'Ver más' : 'Ver menos'; },
-      share: () => { const txt = `🎤 Escucha a ${a.name} en Música NX`; A && A.share ? A.share(txt) : toast(txt); }
+      share: () => { const txt = `🎤 Escucha a ${a.name} en BeatNX`; A && A.share ? A.share(txt) : toast(txt); }
     });
   } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openArtist(id); }; }
 }
@@ -2483,7 +2483,7 @@ async function renderHome(soft) {
       shelf('Artistas populares', ars.slice(0, 20).map(artistCard), 'artists') +
       shelf(favPl ? 'Playlists para ti' : 'Playlists destacadas', (pl.data || []).map(p => ({ go: 'dzpl:' + p.id, img: p.picture_medium, t1: p.title, t2: p.nb_tracks ? p.nb_tracks + ' canciones' : 'Playlist' })), 'pls') +
       shelf('Más canciones para ti', more.map(t => ({ go: 'album:' + t.albumId, img: t.cover, t1: t.title, t2: t.artist })), 'albums') +
-      `<div class="foot"><b>Música NX</b><br>© 2026 Nexora · Eduard Gamer</div>`;
+      `<div class="foot"><b>BeatNX</b><br>© 2026 Nexora · Eduard Gamer</div>`;
     if (soft) await preloadImgs([...heros.map(h => h.img), ...als.slice(0, 3).map(a => a.cover_medium), ...ars.slice(0, 3).map(a => a.picture_medium), ...more.slice(0, 3).map(t => t.cover)], 3500);
     if (soft) renderHomeQuick();
     body.innerHTML = html;
@@ -2760,9 +2760,9 @@ function settingsHTML() {
     <div class="menu">
       <button class="mi" data-m="priv"><span class="ico" style="background:#10B981">${ic('shield')}</span><div class="meta"><div class="t1">Política de privacidad</div><small>Qué datos usa la app</small></div>${ic('right')}</button>
       <button class="mi" data-m="upd"><span class="ico" style="background:#F59E0B">${ic('update')}</span><div class="meta"><div class="t1">Buscar actualizaciones</div><small>Versión ${esc(appVersion())}</small></div>${ic('right')}</button>
-      <button class="mi" data-m="about"><span class="ico" style="background:#8B5CF6">${ic('info')}</span><div class="meta"><div class="t1">Acerca de Música NX</div><small>Créditos y licencia</small></div>${ic('right')}</button>
+      <button class="mi" data-m="about"><span class="ico" style="background:#8B5CF6">${ic('info')}</span><div class="meta"><div class="t1">Acerca de BeatNX</div><small>Créditos y licencia</small></div>${ic('right')}</button>
     </div>
-    <div class="foot"><b>Música NX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer</div></div>`;
+    <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer</div></div>`;
 }
 function openSettings() {
   const el = pushPage(`<div class="set-top"><span class="ico">${ic('gear')}</span><h1>Configuración</h1></div><div id="setBody">${settingsHTML()}</div>`, 'Configuración');
@@ -2779,7 +2779,7 @@ function renderMe() {
       <div class="stat"><b>${D.likes.length}</b><small>Me gusta</small></div><div class="stat"><b>${D.pls.length}</b><small>Playlists</small></div></div>
     ${top.length ? `<div class="sh-h" style="margin-top:8px"><h2 class="sec">Lo que más escuchas</h2></div>${listHTML(top, { name: 'Lo que más escuchas' }, { rank: true })}` : ''}
     <button class="set-card" id="meSet"><span class="ico">${ic('gear')}</span><div class="meta"><b>Configuración</b><small>Color, nube, descargas, reproducción y más</small></div>${ic('right')}</button>
-    <div class="foot"><b>Música NX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
+    <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
   $('#meEdit').onclick = profileSheet;
   $('#bnSet').onclick = openSettings; $('#meSet').onclick = openSettings;
   const sb = $('#setBody'); if (sb) sb.innerHTML = settingsHTML();
@@ -3353,7 +3353,7 @@ function setUpdState(st, msg, err) {
 function startUpdate() {
   if (!U.apk) return;
   if (A.updCanInstall && !A.updCanInstall()) {
-    setUpdState('perm', 'Activa "Permitir de esta fuente" para Música NX en la pantalla que se abrió y vuelve aquí.');
+    setUpdState('perm', 'Activa "Permitir de esta fuente" para BeatNX en la pantalla que se abrió y vuelve aquí.');
     A.updPerm(); return;
   }
   U.samples = []; U.total = 0;
@@ -3373,7 +3373,7 @@ function updProgress(done, total) {
   $('#updEta').innerHTML = speed > 0 ? `${fmtMB(speed)}/s · ${fmtEta((total - done) / speed)}` : 'Calculando…';
 }
 function onUpd(e) {
-  if (e.state === 'perm') setUpdState('perm', 'Activa "Permitir de esta fuente" para Música NX y vuelve aquí.');
+  if (e.state === 'perm') setUpdState('perm', 'Activa "Permitir de esta fuente" para BeatNX y vuelve aquí.');
   else if (e.state === 'start') { U.total = e.total; setUpdState('down', 'Descargando la nueva versión…'); updProgress(0, e.total); }
   else if (e.state === 'progress') { if (e.total) U.total = e.total; if (U.state !== 'down') setUpdState('down', 'Descargando la nueva versión…'); updProgress(e.done, U.total); }
   else if (e.state === 'installing') {
@@ -3425,7 +3425,7 @@ function accountSheet() {
   openSheet(`<div class="sh-title">Cuenta de YouTube</div>
     <p class="sh-p">A veces YouTube pide confirmar que "no eres un robot". Si inicias sesión, el motor usa tu sesión para conseguir la canción.</p>
     <div class="warn"><b>⚠️ Riesgo:</b> YouTube puede limitar o suspender cuentas que usan herramientas no oficiales como yt-dlp. <b>Usa una cuenta secundaria</b>, nunca tu cuenta principal.</div>
-    <p class="sh-p">La sesión se guarda solo en este teléfono. Música NX no la envía a ningún otro lugar y puedes cerrarla cuando quieras.</p>
+    <p class="sh-p">La sesión se guarda solo en este teléfono. BeatNX no la envía a ningún otro lugar y puedes cerrarla cuando quieras.</p>
     <button class="si" data-a="login">${ic('user')}<span>Iniciar sesión con una cuenta secundaria</span></button>
     <button class="si" data-a="no">${ic('back')}<span>Ahora no</span></button>`, sh => sh.onclick = e => {
     const b = e.target.closest('[data-a]'); if (!b) return;
