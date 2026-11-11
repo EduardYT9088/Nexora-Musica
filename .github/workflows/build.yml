@@ -166,7 +166,7 @@ jobs:
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher"
-                  android:banner="@drawable/ic_launcher_foreground"
+                  android:banner="@drawable/ic_launcher_fg"
                   android:label="@string/app_name"
                   android:theme="@style/Theme.App"
                   android:hardwareAccelerated="true"
@@ -2102,6 +2102,15 @@ jobs:
                   android:pathData="M42,50 L42,58 M50,43 L50,65 M58,47 L58,61 M66,51 L66,57" />
           </vector>
           APPEOF
+          # Ícono de BeatNX: las imágenes de la carpeta icono/ del repositorio (si no están, el dibujo de arriba)
+          if [ -f ../icono/fg-xxxhdpi.png ]; then
+            for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              mkdir -p app/src/main/res/drawable-$d
+              cp ../icono/fg-$d.png app/src/main/res/drawable-$d/ic_launcher_fg.png
+            done
+          else
+            cp app/src/main/res/drawable/ic_launcher_foreground.xml app/src/main/res/drawable/ic_launcher_fg.xml
+          fi
           cat > app/src/main/res/drawable/ic_launcher_mono.xml <<'APPEOF'
           <?xml version="1.0" encoding="utf-8"?>
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
@@ -2109,20 +2118,24 @@ jobs:
               android:viewportWidth="108" android:viewportHeight="108">
               <path android:strokeColor="#FFFFFF" android:strokeWidth="5"
                   android:strokeLineCap="round"
-                  android:pathData="M42,50 L42,58 M50,43 L50,65 M58,47 L58,61 M66,51 L66,57" />
+                  android:pathData="M39,51 L39,57 M45,45 L45,63 M51,49 L51,59" />
+              <path android:strokeColor="#FFFFFF" android:strokeWidth="5.5"
+                  android:strokeLineCap="round"
+                  android:pathData="M57,46 L69,62 M69,46 L57,62" />
           </vector>
           APPEOF
           cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'APPEOF'
           <?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/app_bg" />
-              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+              <background android:drawable="@color/ic_bg" />
+              <foreground android:drawable="@drawable/ic_launcher_fg" />
               <monochrome android:drawable="@drawable/ic_launcher_mono" />
           </adaptive-icon>
           APPEOF
           cat > app/src/main/res/values/colors.xml <<'APPEOF'
           <resources>
               <color name="app_bg">#09090F</color>
+              <color name="ic_bg">#E8263A</color>
           </resources>
           APPEOF
           cat > app/src/main/res/values/strings.xml <<'APPEOF'
@@ -2141,7 +2154,7 @@ jobs:
           APPEOF
           # Todo lo web del repo va a assets (index.html, css, js, imágenes…)
           mkdir -p app/src/main/assets
-          (cd .. && tar cf - --exclude=./.git --exclude=./.github --exclude=./proyecto --exclude='*.md' .) | tar xf - -C app/src/main/assets
+          (cd .. && tar cf - --exclude=./.git --exclude=./.github --exclude=./proyecto --exclude='*.md' --exclude='./icono/fg-*' --exclude=./icono/playstore-512.png .) | tar xf - -C app/src/main/assets
 
       # Firma de BeatNX: NO la cambies nunca (si cambia, Android no deja actualizar la app).
       # Las contraseñas están en Secrets; sin ellas este archivo no sirve para firmar.

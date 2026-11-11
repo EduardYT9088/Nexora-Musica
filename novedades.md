@@ -1,4 +1,5 @@
-Versión: 1.0.1
+Versión: 1.0.2
+- Nuevo logo oficial de BeatNX
 - Nuevo nombre: Música NX ahora se llama BeatNX
 - Nuevo: Volumen extra (hasta 300 %) en Configuración → Reproducción
 - El potenciador de volumen y el ecualizador del teléfono ahora también funcionan con BeatNX
