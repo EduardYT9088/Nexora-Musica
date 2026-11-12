@@ -70,6 +70,24 @@ body.booting .view{overflow:hidden!important;touch-action:none}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--grad);display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;flex:none;overflow:hidden;padding:0;box-shadow:0 0 0 2px var(--bg),0 0 0 4px color-mix(in srgb,var(--acc) 60%,transparent)}
 .avatar img{width:100%;height:100%;object-fit:cover}
 .hello{padding:14px 16px 4px}
+.resume{margin:14px 16px 4px;padding:16px;border-radius:24px;background:linear-gradient(135deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.1);box-shadow:0 14px 34px rgba(0,0,0,.35);animation:rsIn .35s cubic-bezier(.2,.8,.2,1);transition:opacity .25s,transform .25s}
+.resume.out{opacity:0;transform:translateY(-8px) scale(.98)}
+@keyframes rsIn{from{opacity:0;transform:translateY(10px)}}
+.rs-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.rs-tag{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--acc)}
+.rs-tag .ic{width:18px;height:18px}
+.rs-x{width:36px;height:36px;margin:-8px -6px -8px 0;border-radius:50%;display:grid;place-items:center;color:var(--mut)}
+.rs-x .ic{width:18px;height:18px}
+.rs-row{display:flex;gap:14px;align-items:center}
+.rs-row .cv{width:68px;height:68px;border-radius:16px;flex:none}
+.rs-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.rs-meta b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs-meta small{color:var(--mut);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rs-bar{height:4px;border-radius:4px;background:rgba(255,255,255,.12);margin:6px 0 2px;overflow:hidden}
+.rs-bar i{display:block;height:100%;border-radius:4px;background:var(--grad)}
+.rs-time{font-size:12px!important}
+.rs-go{margin-top:14px;width:100%;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;color:#fff;background:var(--grad);box-shadow:0 10px 24px rgba(0,0,0,.3)}
+.rs-go .ic{width:20px;height:20px}
 .hello small{color:var(--mut);font-size:14px;font-weight:500}
 .hello h1{font-size:30px;font-weight:800;letter-spacing:-.6px;line-height:1.1;margin-top:2px}
 .title-h{padding:6px 16px 12px;display:flex;align-items:center;gap:8px}
@@ -713,6 +731,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
       <button data-f="artists">Artistas</button>
       <button data-f="pls">Playlists</button>
     </div>
+    <div id="resumeBox"></div>
     <div id="homeBody"></div>
   </section>
 
@@ -1703,7 +1722,7 @@ function syncLyrics() {
 /* ---------- Interfaz del reproductor ---------- */
 function setPlaying(v) {
   P.playing = v;
-  if (v) P.failRun = 0;
+  if (v) { P.failRun = 0; if (P.resumeShown) hideResume(); }
   const i = v ? 'pause' : 'play';
   $('#plPP').innerHTML = ic(i, 1); $('#miniPP').innerHTML = ic(i, 1);
   $('#plPP').setAttribute('aria-label', v ? 'Pausar' : 'Reproducir');
@@ -2593,6 +2612,7 @@ async function renderHome(soft) {
 function applyHomeFilter() {
   $$('#homeChips button').forEach(c => c.classList.toggle('on', c.dataset.f === homeF));
   $$('#homeBody [data-sec]').forEach(s => { const k = s.dataset.sec; s.classList.toggle('hidden', homeF !== 'all' && k !== homeF); });
+  const rb = $('#resumeBox'); if (rb) rb.classList.toggle('hidden', homeF !== 'all');
 }
 
 /* ---------- Buscar ---------- */
@@ -3471,6 +3491,26 @@ function accountSheet() {
   });
 }
 /** Si la app se reabrió mientras sonaba música en segundo plano, recupera el reproductor. */
+/* "¿Seguir escuchando?": aparece en Para ti cuando hay algo pendiente de lo que escuchabas */
+function paintResume() {
+  const box = $('#resumeBox'), t = P.cur, ses = S.get('session', null);
+  if (!box) return;
+  if (!t || P.playing || P.src || !P.resumeAt || (ses && ses.dismissed === t.id)) { box.innerHTML = ''; P.resumeShown = false; return; }
+  const pct = t.dur ? Math.min(100, (P.resumeAt.pos || 0) / t.dur * 100) : 0;
+  const left = t.dur ? Math.max(0, t.dur - (P.resumeAt.pos || 0)) : 0;
+  box.innerHTML = `<div class="resume">
+    <div class="rs-top"><span class="rs-tag">${ic('clock')}¿Seguir escuchando?</span><button class="rs-x" id="rsClose" aria-label="Cerrar">${ic('x')}</button></div>
+    <div class="rs-row">${cvTag(t.cover)}<div class="rs-meta"><b>${esc(t.title)}</b><small>${esc(t.artist)}${P.ctx && P.ctx.name ? ' · ' + esc(P.ctx.name) : ''}</small>
+      <div class="rs-bar"><i style="width:${pct.toFixed(1)}%"></i></div><small class="rs-time">Ibas en ${fmt(P.resumeAt.pos || 0)}${left ? ' · faltan ' + fmt(left) : ''}</small></div></div>
+    <button class="rs-go" id="rsGo">${ic('play', 1)}Seguir escuchando</button></div>`;
+  P.resumeShown = true;
+  $('#rsGo').onclick = () => { vib(10); hideResume(); toggle(); };
+  $('#rsClose').onclick = () => { const x = S.get('session', null); if (x) { x.dismissed = t.id; S.set('session', x); } hideResume(); };
+}
+function hideResume() {
+  const box = $('#resumeBox'); P.resumeShown = false;
+  if (box && box.firstElementChild) { box.firstElementChild.classList.add('out'); setTimeout(() => { box.innerHTML = ''; }, 260); }
+}
 function restoreNative() {
   const ses = S.get('session', null);
   const okSes = ses && Array.isArray(ses.q) && ses.q[ses.i] && Date.now() - (ses.at || 0) < 14 * 864e5;
@@ -3494,6 +3534,7 @@ function restoreNative() {
   const t = P.q[P.i];
   P.cur = t; P.src = ''; P.pos = ses.pos || 0; P.dur = t.dur || 0; P.resumeAt = { id: t.id, pos: P.pos };
   updateNowUI(); updateSrc(); setLoading(false); setPlaying(false); loadLyrics(t, P.tok); markRows();
+  paintResume();
 }
 
 /* ---------- Inicio de la app ---------- */

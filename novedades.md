@@ -1,4 +1,5 @@
-Versión: 1.0.4
+Versión: 1.0.5
+- Nuevo en Para ti: "¿Seguir escuchando?" con la canción donde quedaste, cuánto ibas y un botón para seguir
 - Al volver a la app sigue lo que estabas escuchando, en la misma canción, el mismo segundo y la misma lista
 - Al terminar tu lista suena una mezcla: éxitos de tus artistas y de famosos como Bad Bunny, Anuel o Karol G
 - La app busca actualizaciones también cuando vuelves a ella, no solo al abrirla de cero
