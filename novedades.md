@@ -1,4 +1,7 @@
-Versión: 1.0.3
+Versión: 1.0.4
+- Al volver a la app sigue lo que estabas escuchando, en la misma canción, el mismo segundo y la misma lista
+- Al terminar tu lista suena una mezcla: éxitos de tus artistas y de famosos como Bad Bunny, Anuel o Karol G
+- La app busca actualizaciones también cuando vuelves a ella, no solo al abrirla de cero
 - Adiós a las vistas previas de 30 s: si una canción no se encuentra completa, pasa sola a la siguiente
 - Al terminar tus canciones siguen éxitos de artistas que conoces (tus favoritos y los que escuchas), no canciones raras
 - Desde Descargas, primero suenan tus otras descargas

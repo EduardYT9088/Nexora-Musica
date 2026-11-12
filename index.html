@@ -923,7 +923,7 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 /* ---------- Datos guardados en el teléfono ---------- */
 /* Cada cuenta tiene sus propios me gusta, playlists, descargas, historial y perfil.
    La cuenta que ya estaba usando la app conserva los datos de siempre (sin prefijo). */
-const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou']);
+const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou', 'session']);
 const LS = {
   get(k, d) { try { const v = localStorage.getItem('nx.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('nx.' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1350,7 +1350,10 @@ function extendQueue() {
         same = shuffleArr((top.data || []).slice(0, 20).map(T).filter(keep)).slice(0, 6);
         const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && (known.has(+a.id) || (a.nb_fan || 0) >= 2e6))).slice(0, 3);
         const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && !rels.some(r => r.id === +a.id))).slice(0, 2);
-        const tops = await Promise.all([...rels, ...favs].map(a => dz(`/artist/${a.id}/top?limit=15`).catch(() => ({ data: [] }))));
+        // Como una mezcla: también entran éxitos de artistas latinos famosos (Bad Bunny, Anuel, Karol G…)
+        const latin = (await Promise.all(shuffleArr(LATIN.slice()).slice(0, 4).map(n => artistByName(n).catch(() => null))))
+          .filter(a => a && a.id !== main && !rels.some(r => r.id === a.id) && !favs.some(f => +f.id === a.id)).slice(0, 3);
+        const tops = await Promise.all([...rels, ...favs, ...latin].map(a => dz(`/artist/${a.id}/top?limit=15`).catch(() => ({ data: [] }))));
         tops.forEach(j => similar.push(...hits(j, 3)));
         similar = shuffleArr(similar.filter((x, k, arr) => arr.findIndex(y => y.id === x.id) === k)).slice(0, 10);
       }
@@ -1384,7 +1387,7 @@ function handoffToNative(force) {
     try { P.yt && P.yt.stopVideo && P.yt.stopVideo(); } catch (e) {}
     try { audio.pause(); } catch (e) {}
     P.src = 'nat'; P.handoff = false; setLoading(true);
-    A.audioPlay(natInfo(P.cur, P.nat, from === 'yt' ? pos : 0));
+    A.audioPlay(natInfo(P.cur, P.nat, from === 'yt' ? pos : (P.startAt || 0))); P.startAt = 0;
   }
   updateSrc();
 }
@@ -1519,8 +1522,9 @@ function addToQueue(t) { if (!P.cur) return playOne(t); P.q.splice(P.i + 1, 0, t
 async function loadCur() {
   const t = P.q[P.i]; if (!t) return;
   const tok = ++P.tok;
+  P.startAt = (P.resumeAt && P.resumeAt.id === t.id) ? P.resumeAt.pos : 0; P.resumeAt = null;
   stopEngines();
-  P.cur = t; P.pos = 0; P.dur = t.dur || 0; P.cands = []; P.ci = 0; P.searched = false;
+  P.cur = t; P.pos = P.startAt || 0; P.dur = t.dur || 0; P.cands = []; P.ci = 0; P.searched = false;
   P.nat = null; P.vid = ''; P.handoff = false; P.resolving = false; P.userPaused = false; P.src = ''; P.ytDead = false;
   setPlaying(false); setLoading(true); updateNowUI(); pushHistory(t); loadLyrics(t, tok); markRows(); updateSrc();
   if (NAT) {
@@ -1528,14 +1532,14 @@ async function loadCur() {
     const op = offPath(t);
     if (op) {
       P.vid = D.yt[t.id] || ''; P.cands = P.vid ? [P.vid] : []; P.nat = { url: op, ua: '' }; P.src = 'nat';
-      A.audioPlay(natInfo(t, P.nat, 0)); updateSrc(); prefetchNext();
+      A.audioPlay(natInfo(t, P.nat, P.startAt)); P.startAt = 0; updateSrc(); prefetchNext();
       return;
     }
     // 1) Ya estaba preparada: suena al instante con el motor NX
     const hit = readyGet(t);
     if (hit && hit.nat && P.natRetry !== t.id) {
       P.vid = hit.vid; P.cands = [hit.vid]; P.nat = hit.nat; P.src = 'nat'; P.natDisk = !!hit.disk;
-      A.audioPlay(natInfo(t, hit.nat, 0)); updateSrc(); prefetchNext();
+      A.audioPlay(natInfo(t, hit.nat, P.startAt)); P.startAt = 0; updateSrc(); prefetchNext();
       return;
     }
     P.natRetry = null;
@@ -1798,6 +1802,14 @@ let playerOpen = false;
 function openPlayer() { if (!P.cur) return; playerOpen = true; $('#player').classList.add('open'); $('#player').setAttribute('aria-hidden', 'false'); setTimeout(() => $('#plDown').focus({ preventScroll: true }), 300); }
 function closePlayer() { playerOpen = false; $('#player').classList.remove('open'); $('#player').setAttribute('aria-hidden', 'true'); videoOff(); }
 
+/* ---------- Lo que estabas escuchando: se guarda para seguir donde quedaste ---------- */
+function saveSession() {
+  if (!P.cur || !P.q.length) return;
+  const a = Math.max(0, P.i - 30), q = P.q.slice(a, P.i + 70);
+  S.set('session', { q, i: P.i - a, pos: Math.round(P.pos || 0), ctx: P.ctx || null, at: Date.now() });
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveSession(); });
+window.addEventListener('pagehide', saveSession);
 /* reloj del reproductor */
 let statAcc = 0;
 setInterval(() => {
@@ -1821,7 +1833,7 @@ setInterval(() => {
   }
   $('#miniRing').style.strokeDashoffset = (125.66 * (1 - pct / 100)).toFixed(2);
   syncLyrics();
-  if (P.playing) { D.stats.secs += 0.5; if (++statAcc % 20 === 0) save('stats'); }
+  if (P.playing) { D.stats.secs += 0.5; if (++statAcc % 20 === 0) save('stats'); if (statAcc % 10 === 0) saveSession(); }
   if (P.sleepAt && Date.now() >= P.sleepAt) { setSleep(0); pauseAll(); toast('Temporizador: música detenida'); }
   if (P.sleepAt) { const m = Math.ceil((P.sleepAt - Date.now()) / 60000); $('#plTm').textContent = m + ' min'; }
 }, 500);
@@ -3340,7 +3352,10 @@ const UPD_JSON = `https://github.com/${REPO}/releases/latest/download/version.js
 const U = { open: false, must: true, apk: '', state: 'idle', samples: [], total: 0 };
 const fmtMB = b => (b / 1048576).toFixed(b >= 104857600 ? 0 : 1) + ' MB';
 function fmtEta(s) { if (!isFinite(s) || s < 0) return 'Calculando…'; s = Math.ceil(s); return s < 60 ? `Quedan ${s} s` : `Quedan ${Math.floor(s / 60)} min ${s % 60} s`; }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !U.open && Date.now() - (U.checkedAt || 0) > 10 * 60e3) checkUpdate(); });
+setInterval(() => { if (!document.hidden && !U.open && Date.now() - (U.checkedAt || 0) > 30 * 60e3) checkUpdate(); }, 5 * 60e3);
 async function checkUpdate(manual) {
+  U.checkedAt = Date.now();
   if (!A || !A.updStart) { if (manual) toast('Las actualizaciones funcionan en la app instalada'); return false; }
   try {
     const info = JSON.parse(A.appInfo());
@@ -3457,13 +3472,28 @@ function accountSheet() {
 }
 /** Si la app se reabrió mientras sonaba música en segundo plano, recupera el reproductor. */
 function restoreNative() {
+  const ses = S.get('session', null);
+  const okSes = ses && Array.isArray(ses.q) && ses.q[ses.i] && Date.now() - (ses.at || 0) < 14 * 864e5;
   try {
-    const s = JSON.parse(A.audioState());
-    if (!s.id || s.state === 'idle') return;
-    const t = D.hist.find(x => String(x.id) === String(s.id)); if (!t) return;
-    P.list = [t]; P.q = [t]; P.i = 0; P.cur = t; P.src = 'nat'; P.vid = D.yt[t.id] || ''; P.ctx = { name: t.album || t.title };
-    updateNowUI(); updateSrc(); setLoading(false); setPlaying(s.state === 'playing'); loadLyrics(t, P.tok);
+    const s = NAT ? JSON.parse(A.audioState()) : {};
+    if (s.id && s.state !== 'idle') {                // la música sigue sonando: retoma la misma lista
+      const k = okSes ? ses.q.findIndex(x => String(x.id) === String(s.id)) : -1;
+      if (k >= 0) { P.q = ses.q; P.list = ses.q.slice(); P.i = k; P.ctx = ses.ctx; }
+      else {
+        const t = D.hist.find(x => String(x.id) === String(s.id)); if (!t) return;
+        P.list = [t]; P.q = [t]; P.i = 0; P.ctx = { name: t.album || t.title };
+      }
+      const t = P.q[P.i];
+      P.cur = t; P.src = 'nat'; P.vid = D.yt[t.id] || '';
+      updateNowUI(); updateSrc(); setLoading(false); setPlaying(s.state === 'playing'); loadLyrics(t, P.tok); markRows();
+      return;
+    }
   } catch (e) {}
+  if (!okSes) return;                                // la app se cerró: deja lista la canción en el mismo segundo
+  P.q = ses.q; P.list = ses.q.slice(); P.i = ses.i; P.ctx = ses.ctx;
+  const t = P.q[P.i];
+  P.cur = t; P.src = ''; P.pos = ses.pos || 0; P.dur = t.dur || 0; P.resumeAt = { id: t.id, pos: P.pos };
+  updateNowUI(); updateSrc(); setLoading(false); setPlaying(false); loadLyrics(t, P.tok); markRows();
 }
 
 /* ---------- Inicio de la app ---------- */
@@ -3490,7 +3520,8 @@ function hideSplash() {
 }
 setTimeout(hideSplash, 4000);
 applyAccent(); updateModes(); setPlaying(false);
-if (NAT) { try { Object.assign(P.eng, JSON.parse(A.engine())); P.engKnown = true; if (P.eng.logged && A.logout) { P.engKnown = false; A.logout(); } } catch (e) {} restoreNative(); syncOffline(); }
+if (NAT) { try { Object.assign(P.eng, JSON.parse(A.engine())); P.engKnown = true; if (P.eng.logged && A.logout) { P.engKnown = false; A.logout(); } } catch (e) {} syncOffline(); }
+restoreNative();
 window.addEventListener('online', () => { if (!homeLoaded) renderHome(); });
 paintAvatars();
 renderHome();
