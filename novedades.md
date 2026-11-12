@@ -1,4 +1,6 @@
-Versión: 1.0.5
+Versión: 1.0.6
+- Si pones otra canción sin querer, BeatNX recuerda dónde ibas: en Para ti sale "¿Volver a la que dejaste?" para seguir en el mismo segundo
+- Si vuelves a poner esa canción, sigue donde la dejaste en vez de empezar de cero
 - Nuevo en Para ti: "¿Seguir escuchando?" con la canción donde quedaste, cuánto ibas y un botón para seguir
 - Al volver a la app sigue lo que estabas escuchando, en la misma canción, el mismo segundo y la misma lista
 - Al terminar tu lista suena una mezcla: éxitos de tus artistas y de famosos como Bad Bunny, Anuel o Karol G

@@ -942,7 +942,7 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 /* ---------- Datos guardados en el teléfono ---------- */
 /* Cada cuenta tiene sus propios me gusta, playlists, descargas, historial y perfil.
    La cuenta que ya estaba usando la app conserva los datos de siempre (sin prefijo). */
-const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou', 'session']);
+const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou', 'session', 'interrupted']);
 const LS = {
   get(k, d) { try { const v = localStorage.getItem('nx.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('nx.' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1528,8 +1528,18 @@ async function warmUp(extra) {
     try { await prepare(t); } catch (e) {}
   }
 }
+/* La canción que dejaste a medias al poner otra (por ejemplo, sin querer): se recuerda dónde ibas */
+function noteInterrupt(nextId) {
+  const t = P.cur;
+  if (!t || String(t.id) === String(nextId) || !P.dur) return;
+  const pos = P.pos || 0;
+  if (pos < 20 || P.dur - pos < 25) return;      // recién empezaba o ya casi terminaba: no hace falta
+  const a = Math.max(0, P.i - 30);
+  S.set('interrupted', { t, pos: Math.round(pos), q: P.q.slice(a, P.i + 70), i: P.i - a, ctx: P.ctx || null, at: Date.now() });
+}
 function playList(list, i, ctx) {
   if (!list || !list.length) return;
+  noteInterrupt(list[i] && list[i].id);
   P.list = list.slice(); P.ctx = ctx || null;
   if (P.shuffle) { const first = list[i]; const rest = shuffleArr(list.filter((_, k) => k !== i)); P.q = [first, ...rest]; P.i = 0; }
   else { P.q = list.slice(); P.i = i; }
@@ -1542,6 +1552,13 @@ async function loadCur() {
   const t = P.q[P.i]; if (!t) return;
   const tok = ++P.tok;
   P.startAt = (P.resumeAt && P.resumeAt.id === t.id) ? P.resumeAt.pos : 0; P.resumeAt = null;
+  if (!P.startAt) {
+    const it = S.get('interrupted', null);
+    if (it && it.t && String(it.t.id) === String(t.id) && Date.now() - (it.at || 0) < 12 * 3600e3) {
+      P.startAt = it.pos; S.set('interrupted', null);
+      setTimeout(() => toast('Seguimos donde la dejaste (' + fmt(it.pos) + ')'), 400);
+    }
+  }
   stopEngines();
   P.cur = t; P.pos = P.startAt || 0; P.dur = t.dur || 0; P.cands = []; P.ci = 0; P.searched = false;
   P.nat = null; P.vid = ''; P.handoff = false; P.resolving = false; P.userPaused = false; P.src = ''; P.ytDead = false;
@@ -1722,7 +1739,8 @@ function syncLyrics() {
 /* ---------- Interfaz del reproductor ---------- */
 function setPlaying(v) {
   P.playing = v;
-  if (v) { P.failRun = 0; if (P.resumeShown) hideResume(); }
+  if (v) P.failRun = 0;
+  paintResume();
   const i = v ? 'pause' : 'play';
   $('#plPP').innerHTML = ic(i, 1); $('#miniPP').innerHTML = ic(i, 1);
   $('#plPP').setAttribute('aria-label', v ? 'Pausar' : 'Reproducir');
@@ -3491,25 +3509,41 @@ function accountSheet() {
   });
 }
 /** Si la app se reabrió mientras sonaba música en segundo plano, recupera el reproductor. */
-/* "¿Seguir escuchando?": aparece en Para ti cuando hay algo pendiente de lo que escuchabas */
+/* "¿Seguir escuchando?" en Para ti: la canción que quedó a medias (al cerrar la app o al poner otra sin querer) */
+function resumeCard() {
+  if (P.cur && !P.playing && !P.src && P.resumeAt) {
+    const ses = S.get('session', null);
+    if (ses && ses.dismissed === P.cur.id) return null;
+    return { key: 's' + P.cur.id, t: P.cur, pos: P.resumeAt.pos || 0, ctx: P.ctx, tag: '¿Seguir escuchando?', btn: 'Seguir escuchando',
+      go: () => toggle(), close: () => { const x = S.get('session', null); if (x) { x.dismissed = P.cur && P.cur.id; S.set('session', x); } } };
+  }
+  const it = S.get('interrupted', null);
+  if (!it || !it.t || it.dismissed || Date.now() - (it.at || 0) > 12 * 3600e3) return null;
+  if (P.cur && String(P.cur.id) === String(it.t.id)) return null;
+  return { key: 'i' + it.t.id + ':' + it.at, t: it.t, pos: it.pos || 0, ctx: it.ctx, tag: '¿Volver a la que dejaste?', btn: 'Seguir donde la dejé',
+    go: () => { P.q = it.q; P.list = it.q.slice(); P.i = it.i; P.ctx = it.ctx; loadCur(); },
+    close: () => { it.dismissed = true; S.set('interrupted', it); } };
+}
 function paintResume() {
-  const box = $('#resumeBox'), t = P.cur, ses = S.get('session', null);
-  if (!box) return;
-  if (!t || P.playing || P.src || !P.resumeAt || (ses && ses.dismissed === t.id)) { box.innerHTML = ''; P.resumeShown = false; return; }
-  const pct = t.dur ? Math.min(100, (P.resumeAt.pos || 0) / t.dur * 100) : 0;
-  const left = t.dur ? Math.max(0, t.dur - (P.resumeAt.pos || 0)) : 0;
+  const box = $('#resumeBox'); if (!box) return;
+  const c = resumeCard();
+  if (!c) { if (box.dataset.key) { box.dataset.key = ''; hideResume(); } return; }
+  if (box.dataset.key === c.key && box.firstElementChild) return;
+  box.dataset.key = c.key;
+  const t = c.t, pct = t.dur ? Math.min(100, c.pos / t.dur * 100) : 0, left = t.dur ? Math.max(0, t.dur - c.pos) : 0;
   box.innerHTML = `<div class="resume">
-    <div class="rs-top"><span class="rs-tag">${ic('clock')}¿Seguir escuchando?</span><button class="rs-x" id="rsClose" aria-label="Cerrar">${ic('x')}</button></div>
-    <div class="rs-row">${cvTag(t.cover)}<div class="rs-meta"><b>${esc(t.title)}</b><small>${esc(t.artist)}${P.ctx && P.ctx.name ? ' · ' + esc(P.ctx.name) : ''}</small>
-      <div class="rs-bar"><i style="width:${pct.toFixed(1)}%"></i></div><small class="rs-time">Ibas en ${fmt(P.resumeAt.pos || 0)}${left ? ' · faltan ' + fmt(left) : ''}</small></div></div>
-    <button class="rs-go" id="rsGo">${ic('play', 1)}Seguir escuchando</button></div>`;
+    <div class="rs-top"><span class="rs-tag">${ic('clock')}${c.tag}</span><button class="rs-x" id="rsClose" aria-label="Cerrar">${ic('x')}</button></div>
+    <div class="rs-row">${cvTag(t.cover)}<div class="rs-meta"><b>${esc(t.title)}</b><small>${esc(t.artist)}${c.ctx && c.ctx.name ? ' · ' + esc(c.ctx.name) : ''}</small>
+      <div class="rs-bar"><i style="width:${pct.toFixed(1)}%"></i></div><small class="rs-time">Ibas en ${fmt(c.pos)}${left ? ' · faltan ' + fmt(left) : ''}</small></div></div>
+    <button class="rs-go" id="rsGo">${ic('play', 1)}${c.btn}</button></div>`;
   P.resumeShown = true;
-  $('#rsGo').onclick = () => { vib(10); hideResume(); toggle(); };
-  $('#rsClose').onclick = () => { const x = S.get('session', null); if (x) { x.dismissed = t.id; S.set('session', x); } hideResume(); };
+  $('#rsGo').onclick = () => { vib(10); box.dataset.key = ''; hideResume(); c.go(); };
+  $('#rsClose').onclick = () => { c.close(); box.dataset.key = ''; hideResume(); };
 }
 function hideResume() {
   const box = $('#resumeBox'); P.resumeShown = false;
-  if (box && box.firstElementChild) { box.firstElementChild.classList.add('out'); setTimeout(() => { box.innerHTML = ''; }, 260); }
+  const el = box && box.firstElementChild;
+  if (el) { el.classList.add('out'); setTimeout(() => { if (el.parentNode) el.remove(); }, 260); }
 }
 function restoreNative() {
   const ses = S.get('session', null);
