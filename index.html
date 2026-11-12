@@ -1321,7 +1321,12 @@ function extendQueue() {
     try {
       const have = new Set(P.q.map(x => x.id).concat(D.hist.slice(0, 25).map(x => x.id)));
       const keep = x => x && !have.has(x.id);
-      // Sin internet: sigue con tus descargas
+      // Desde Descargas o sin internet: primero el resto de tus descargas
+      const fromDl = P.ctx && P.ctx.name === 'Descargas';
+      if (fromDl) {
+        const off = shuffleArr(offTracks().filter(x => !P.q.some(y => y.id === x.id))).slice(0, 15);
+        if (off.length) { P.q.push(...off); P.list.push(...off); return true; }
+      }
       if (!navigator.onLine) {
         const off = shuffleArr(offTracks().filter(keep)).slice(0, 15);
         if (off.length) { P.q.push(...off); P.list.push(...off); }
@@ -1332,17 +1337,21 @@ function extendQueue() {
       const cnt = {}; recent.forEach(x => { if (x.artistId) cnt[x.artistId] = (cnt[x.artistId] || 0) + 1; });
       const main = +((Object.entries(cnt).sort((x, y) => y[1] - x[1])[0] || [])[0] || (P.cur && P.cur.artistId) || 0);
       let same = [], similar = [];
+      // Solo artistas que conoces (tus favoritos, lo que escuchas, los de Inicio) o muy famosos,
+      // y solo sus canciones más escuchadas: nada de canciones raras
+      const known = new Set([...(D.set.favArtists || []).map(a => +a.id), ...D.hist.slice(0, 120).map(x => +x.artistId),
+        ...D.likes.map(x => +x.artistId), ...Object.values(LS.get('artid', {})).map(c => +(c.a && c.a.id))].filter(Boolean));
+      const hits = (j, n) => shuffleArr((j.data || []).filter(x => (x.rank || 0) >= 450000).map(T).filter(keep)).slice(0, n);
       if (main) {
-        const [top, radio, rel] = await Promise.all([
-          dz(`/artist/${main}/top?limit=50`).catch(() => ({ data: [] })),
-          dz(`/artist/${main}/radio?limit=40`).catch(() => ({ data: [] })),
-          dz(`/artist/${main}/related?limit=8`).catch(() => ({ data: [] }))
+        const [top, rel] = await Promise.all([
+          dz(`/artist/${main}/top?limit=30`).catch(() => ({ data: [] })),
+          dz(`/artist/${main}/related?limit=20`).catch(() => ({ data: [] }))
         ]);
-        same = shuffleArr((top.data || []).map(T).filter(keep)).slice(0, 6);
-        similar = (radio.data || []).map(T).filter(x => keep(x) && x.artistId !== main);
-        const rels = shuffleArr((rel.data || []).slice(0, 8)).slice(0, 2);
-        const relTops = await Promise.all(rels.map(a => dz(`/artist/${a.id}/top?limit=10`).then(j => (j.data || []).map(T)).catch(() => [])));
-        relTops.forEach(l => similar.push(...shuffleArr(l.filter(keep)).slice(0, 4)));
+        same = shuffleArr((top.data || []).slice(0, 20).map(T).filter(keep)).slice(0, 6);
+        const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && (known.has(+a.id) || (a.nb_fan || 0) >= 2e6))).slice(0, 3);
+        const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && !rels.some(r => r.id === +a.id))).slice(0, 2);
+        const tops = await Promise.all([...rels, ...favs].map(a => dz(`/artist/${a.id}/top?limit=15`).catch(() => ({ data: [] }))));
+        tops.forEach(j => similar.push(...hits(j, 3)));
         similar = shuffleArr(similar.filter((x, k, arr) => arr.findIndex(y => y.id === x.id) === k)).slice(0, 10);
       }
       // Mezcla: 1 del mismo artista por cada 2 parecidas (mismo estilo)
@@ -1455,10 +1464,20 @@ function stopEngines() {
   try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
   if (NAT) { try { A.audioHalt ? A.audioHalt() : A.audioPause(); } catch (e) {} }
 }
+/** Ya no hay vistas previas de 30 s: si no se encuentra la canción completa, se salta a la siguiente. */
 function playPreview(t) {
-  if (!t.preview) { P.src = ''; setLoading(false); setPlaying(false); toast('Esta canción no está disponible ahora'); updateSrc(); return; }
-  P.src = 'pv'; P.dur = 30; audio.src = t.preview; audio.play().catch(() => {}); updateSrc();
-  toast('Reproduciendo vista previa de 30 s');
+  const tok = P.tok;
+  P.src = ''; setLoading(false); setPlaying(false); updateSrc();
+  P.failRun = (P.failRun || 0) + 1;
+  if (!navigator.onLine) { P.failRun = 0; toast('Sin conexión: escucha tus descargas'); return; }
+  if (P.failRun > 3) { P.failRun = 0; toast('No se pudo cargar la música. Intenta de nuevo en un momento'); return; }
+  toast('No se encontró la canción completa: pasamos a la siguiente');
+  setTimeout(async () => {
+    if (tok !== P.tok) return;                 // el usuario ya eligió otra
+    if (P.i >= P.q.length - 1 && autoplayOn()) await extendQueue();
+    if (tok !== P.tok) return;
+    if (P.i < P.q.length - 1) { P.i++; loadCur(); }
+  }, 500);
 }
 audio.addEventListener('playing', () => { if (P.src === 'pv') { setLoading(false); setPlaying(true); } });
 audio.addEventListener('pause', () => { if (P.src === 'pv') setPlaying(false); });
@@ -1680,6 +1699,7 @@ function syncLyrics() {
 /* ---------- Interfaz del reproductor ---------- */
 function setPlaying(v) {
   P.playing = v;
+  if (v) P.failRun = 0;
   const i = v ? 'pause' : 'play';
   $('#plPP').innerHTML = ic(i, 1); $('#miniPP').innerHTML = ic(i, 1);
   $('#plPP').setAttribute('aria-label', v ? 'Pausar' : 'Reproducir');

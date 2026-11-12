@@ -1,4 +1,7 @@
-Versión: 1.0.2
+Versión: 1.0.3
+- Adiós a las vistas previas de 30 s: si una canción no se encuentra completa, pasa sola a la siguiente
+- Al terminar tus canciones siguen éxitos de artistas que conoces (tus favoritos y los que escuchas), no canciones raras
+- Desde Descargas, primero suenan tus otras descargas
 - Nuevo logo oficial de BeatNX
 - Nuevo nombre: Música NX ahora se llama BeatNX
 - Nuevo: Volumen extra (hasta 300 %) en Configuración → Reproducción
