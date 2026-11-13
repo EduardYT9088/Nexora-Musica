@@ -88,6 +88,10 @@ body.booting .view{overflow:hidden!important;touch-action:none}
 .rs-time{font-size:12px!important}
 .rs-go{margin-top:14px;width:100%;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:15px;color:#fff;background:var(--grad);box-shadow:0 10px 24px rgba(0,0,0,.3)}
 .rs-go .ic{width:20px;height:20px}
+.fav-btns{display:flex;gap:6px;align-items:center}
+.fav-btns{gap:10px;flex:none}
+.fav-btns [data-favshuf]{width:36px;height:36px;border-radius:50%;justify-content:center;background:rgba(255,255,255,.08);color:var(--acc)}
+.fav-btns [data-favshuf] .ic{width:18px;height:18px}
 .hello small{color:var(--mut);font-size:14px;font-weight:500}
 .hello h1{font-size:30px;font-weight:800;letter-spacing:-.6px;line-height:1.1;margin-top:2px}
 .title-h{padding:6px 16px 12px;display:flex;align-items:center;gap:8px}
@@ -2503,18 +2507,20 @@ async function latinMix() {
 let FAVLIST = [];
 function favHTML() {
   const seen = new Set(); FAVLIST = [];
-  [...topPlayed(3), ...(D.forYou || [])].forEach(t => { if (t && !seen.has(t.id)) { seen.add(t.id); FAVLIST.push(t); } });
+  // Cambia cada vez: 2 de las que más escuchas (al azar) + éxitos de tus artistas mezclados
+  [...shuffleArr(topPlayed(10)).slice(0, 2), ...(D.forYou || [])].forEach(t => { if (t && !seen.has(t.id)) { seen.add(t.id); FAVLIST.push(t); } });
   const fa = D.set.favArtists || [];
   if (!FAVLIST.length && !fa.length) return '';
-  return `<div class="sh-h"><h2 class="sec">Tus favoritos del momento</h2>${FAVLIST.length ? `<button data-favplay>${ic('play', 1)}Reproducir</button>` : ''}</div>
+  return `<div class="sh-h"><h2 class="sec">Tus favoritos del momento</h2>${FAVLIST.length ? `<div class="fav-btns"><button data-favshuf aria-label="Reproducir en aleatorio" title="Aleatorio">${ic('shuffle')}</button><button data-favplay>${ic('play', 1)}Reproducir</button></div>` : ''}</div>
     ${FAVLIST.length ? `<div class="panel">${listHTML(FAVLIST, { name: 'Tus favoritos del momento' }, { limit: 6 })}</div>` : ''}
     ${fa.length ? `<div class="sh-h"><h2 class="sec">Tus artistas</h2><button data-onb>Editar${ic('right')}</button></div><div class="hscroll">${fa.map(a => card({ go: 'artist:' + a.id, img: a.img, t1: a.name, t2: 'Artista', round: true })).join('')}</div>` : ''}`;
 }
 async function buildForYou() {
   const favs = D.set.favArtists || []; if (!favs.length) return;
-  const lists = await Promise.all(favs.map(a => dz(`/artist/${a.id}/top?limit=10`).then(j => (j.data || []).map(T)).catch(() => [])));
+  // Sus 25 canciones más escuchadas, en otro orden cada vez: así la lista no se repite siempre igual
+  const lists = await Promise.all(favs.map(a => dz(`/artist/${a.id}/top?limit=25`).then(j => shuffleArr((j.data || []).map(T))).catch(() => [])));
   const out = [];
-  for (let k = 0; k < 10; k++) shuffleArr(lists.slice()).forEach(l => { if (l[k] && !out.some(x => x.id === l[k].id)) out.push(l[k]); });
+  for (let k = 0; k < 25; k++) shuffleArr(lists.slice()).forEach(l => { if (l[k] && !out.some(x => x.id === l[k].id)) out.push(l[k]); });
   if (!out.length) return;
   D.forYou = out.slice(0, 40); save('forYou');
   const f = $('#homeFav'); if (f) f.innerHTML = favHTML();
@@ -2888,6 +2894,7 @@ document.addEventListener('click', e => {
     return;
   }
   if (t.closest('[data-favplay]')) { if (FAVLIST.length) playList(FAVLIST, 0, { name: 'Tus favoritos del momento' }); return; }
+  if (t.closest('[data-favshuf]')) { if (FAVLIST.length) { vib(10); playList(shuffleArr(FAVLIST.slice()), 0, { name: 'Tus favoritos del momento · Aleatorio' }); toast('Tus favoritos en aleatorio'); } return; }
   if (t.closest('[data-onb]')) { openOnb(false); return; }
   const pg = t.closest('[data-playgo]');
   if (pg) { playGo(pg.dataset.playgo); return; }

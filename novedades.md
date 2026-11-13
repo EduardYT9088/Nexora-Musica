@@ -1,4 +1,6 @@
-Versión: 1.0.6
+Versión: 1.0.7
+- "Tus favoritos del momento" cambia cada vez que abres o recargas Inicio: otras canciones y otro orden
+- Nuevo botón Aleatorio (🔀) junto a Reproducir en Tus favoritos
 - Si pones otra canción sin querer, BeatNX recuerda dónde ibas: en Para ti sale "¿Volver a la que dejaste?" para seguir en el mismo segundo
 - Si vuelves a poner esa canción, sigue donde la dejaste en vez de empezar de cero
 - Nuevo en Para ti: "¿Seguir escuchando?" con la canción donde quedaste, cuánto ibas y un botón para seguir
