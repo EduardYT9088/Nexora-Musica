@@ -610,7 +610,8 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 #betaEnd .logo{width:112px;height:112px;border-radius:34px;box-shadow:0 18px 50px rgba(232,38,58,.35)}
 #betaEnd .btag{padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--acc);font-weight:800;letter-spacing:3px;font-size:12px}
 #betaEnd h2{margin:0;font-size:30px}
-#betaEnd p{margin:0;color:var(--mut);line-height:1.55;font-size:15px}
+#betaEnd p{margin:0;color:var(--mut);line-height:1.6;font-size:15px}
+#betaEnd p b{color:var(--txt,#fff)}
 #betaEnd .rs-go{margin-top:8px;height:54px;font-size:16px}
 #betaEnd small{color:var(--mut);opacity:.7;margin-top:6px}
 #upd{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:calc(var(--st) + 20px) 22px calc(var(--sb) + 20px);background:var(--bg);overflow-y:auto}
@@ -912,8 +913,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
     <div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
     <span class="btag">BETA</span>
     <h2 id="betaTitle">Beta terminada</h2>
-    <p>Gracias por probar BeatNX. Esta versión de prueba ya terminó. Descarga la versión oficial para seguir escuchando tu música: tus me gusta, playlists y descargas se quedan.</p>
-    <button class="rs-go" id="betaGo"><svg class="ic"><use href="#i-download"/></svg>Descargar la oficial</button>
+    <p>Gracias por probar BeatNX. Esta versión de prueba ya terminó.<br><b>Descarga la versión oficial</b> para seguir escuchando tu música.</p>
     <small id="betaFoot">BeatNX · Nexora · Eduard Gamer</small>
   </div>
 </div>
@@ -3514,11 +3514,6 @@ function betaGate() {
   const el = $('#betaEnd'); if (!el || !el.classList.contains('hidden')) return true;
   try { stopEngines(); if (NAT && A.audioHalt) A.audioHalt(); } catch (e) {}
   setPlaying(false); el.classList.remove('hidden');
-  $('#betaGo').onclick = async () => {
-    vib(12);
-    const ok = await checkUpdate(true, true);                         // descarga la oficial dentro de la app
-    if (!ok) { try { A.openUrl('https://github.com/' + REPO + '/releases/latest'); } catch (e) { location.href = 'https://github.com/' + REPO + '/releases/latest'; } }
-  };
   return true;
 }
 if (BETA) {
