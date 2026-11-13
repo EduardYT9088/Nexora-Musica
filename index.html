@@ -1416,6 +1416,10 @@ function handoffToNative(force) {
 }
 async function natFailed() {
   const t = P.cur, tok = P.tok, pos = P.pos;
+  if (!navigator.onLine && !offPath(t)) {          // se cayó el internet: no salta canciones, espera en el mismo segundo
+    P.nat = null; P.src = ''; P.handoff = false; P.resumeAt = { id: t.id, pos };
+    netPause(true); setLoading(false); setPlaying(false); updateSrc(); return;
+  }
   readyDrop(t);
   if (P.natDisk) { P.natDisk = false; P.natRetry = t.id; loadCur(); return; }   // enlace viejo: lo prepara de nuevo
   P.nat = null; P.src = ''; P.handoff = false;
@@ -1627,8 +1631,42 @@ async function loadCur() {
   if (await ytReady() && tok === P.tok) { P.src = 'yt'; P.yt.loadVideoById(ids[0]); updateSrc(); }
   else if (tok === P.tok && !P.src) playPreview(t);
 }
+/* Sin internet: la música se pausa; cuando vuelve, sigue en el mismo segundo */
+function netPause(already) {
+  if (P.netPaused) return;
+  if (!P.cur || offPath(P.cur)) return;           // una descarga sigue sonando sin internet
+  if (!already && !P.playing && !P.loading) return;
+  P.netPaused = true;
+  if (!already) {
+    try { if (P.src === 'nat') A.audioPause(); else if (P.src === 'yt' && P.yt) P.yt.pauseVideo(); } catch (e) {}
+    setPlaying(false);
+  }
+  toast('Sin internet: la música se pausó. Seguirá cuando vuelva la conexión');
+}
+function netResume() {
+  if (!P.netPaused) return;
+  P.netPaused = false;
+  if (!P.cur) return;
+  toast('Volvió el internet: seguimos');
+  if (P.src === 'nat') { try { A.audioResume(); } catch (e) { loadCur(); } return; }
+  if (P.src === 'yt' && P.yt) { P.yt.playVideo(); return; }
+  if (!P.resumeAt || P.resumeAt.id !== P.cur.id) P.resumeAt = { id: P.cur.id, pos: P.pos || 0 };
+  loadCur();
+}
+let netWas = navigator.onLine;
+function netCheck() {
+  const on = navigator.onLine;
+  if (on === netWas) return;
+  netWas = on;
+  if (!on) netPause(false);
+  else setTimeout(() => { if (navigator.onLine) netResume(); }, 1500);   // espera a que la conexión se estabilice
+}
+window.addEventListener('offline', netCheck);
+window.addEventListener('online', netCheck);
+setInterval(netCheck, 3000);
 function toggle() {
   if (!P.cur) return;
+  P.netPaused = false;                            // si el usuario toca play/pausa, manda él
   if (P.src === 'nat') { P.userPaused = P.playing; A.audioToggle(); return; }
   if (P.src === 'yt' && P.yt) {
     if (P.playing) { P.userPaused = true; P.yt.pauseVideo(); return; }

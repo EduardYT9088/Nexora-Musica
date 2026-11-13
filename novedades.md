@@ -1,4 +1,6 @@
-Versión: 1.0.7
+Versión: 1.0.8
+- Sin internet la música se pausa (no salta canciones) y cuando vuelve la conexión sigue sola en el mismo segundo
+- Las canciones descargadas siguen sonando sin internet
 - "Tus favoritos del momento" cambia cada vez que abres o recargas Inicio: otras canciones y otro orden
 - Nuevo botón Aleatorio (🔀) junto a Reproducir en Tus favoritos
 - Si pones otra canción sin querer, BeatNX recuerda dónde ibas: en Para ti sale "¿Volver a la que dejaste?" para seguir en el mismo segundo
