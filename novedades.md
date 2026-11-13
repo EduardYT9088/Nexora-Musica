@@ -1,4 +1,5 @@
-Versión: 1.0.9
+Versión: 1.1.0
+- La mezcla respeta el género: si escuchas vallenato sigue vallenato, si es salsa sigue salsa (también reguetón, pop latino, música popular, regional mexicano y bachata)
 - Al terminar Tus favoritos del momento empieza "Tu mezcla": canciones parecidas y éxitos de artistas latinos famosos, como en Spotify
 - Tus favoritos ahora suena las canciones que ves (8) y luego sigue la mezcla, sin repetir siempre a los mismos artistas
 - Sin internet la música se pausa (no salta canciones) y cuando vuelve la conexión sigue sola en el mismo segundo

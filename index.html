@@ -1335,6 +1335,41 @@ function prepare(t) {
   preparing.set(t.id, job);
   return job;
 }
+/* Géneros: la mezcla sigue con música del mismo género (vallenato con vallenato, salsa con salsa…) */
+const GENRES = {
+  vallenato: ['Diomedes Díaz', 'Poncho Zuleta', 'Los Hermanos Zuleta', 'Silvestre Dangond', 'Jorge Celedón', 'Peter Manjarrés', 'Binomio de Oro de América',
+    'Martín Elías', 'Kaleth Morales', 'Iván Villazón', 'Jean Carlos Centeno', 'Felipe Peláez', 'Rafael Orozco', 'Los Diablitos', 'Elder Dayán Díaz',
+    'Carlos Vives', 'Jorge Oñate', 'Nelson Velásquez', 'Otto Serge', 'Los Inquietos del Vallenato', 'Iván Zuleta', 'Churo Díaz', 'Miguel Morales',
+    'Rolando Ochoa', 'Alex Manga', 'Luifer Cuello', 'Hebert Vargas'],
+  salsa: ['Marc Anthony', 'Grupo Niche', 'Joe Arroyo', 'Héctor Lavoe', 'Willie Colón', 'Rubén Blades', 'Frankie Ruiz', 'Gilberto Santa Rosa',
+    'Jerry Rivera', 'Victor Manuelle', 'Eddie Santiago', 'Guayacán Orquesta', 'Fruko y Sus Tesos', "Oscar D'León", 'Celia Cruz', 'Maelo Ruiz',
+    'Tito Nieves', 'Rey Ruiz', 'Willie González', 'Lalo Rodríguez', 'Galy Galiano', 'Tito Rojas', 'Luis Enrique', 'La India', 'Yiyo Sarante'],
+  urbano: ['Bad Bunny', 'Anuel AA', 'Karol G', 'Feid', 'J Balvin', 'Maluma', 'Ozuna', 'Daddy Yankee', 'Rauw Alejandro', 'Myke Towers', 'Nicky Jam',
+    'Farruko', 'Arcángel', 'Blessd', 'Ryan Castro', 'Don Omar', 'Jhayco', 'Sech', 'Mora', 'Young Miko', 'Lunay', 'Justin Quiles', 'Wisin & Yandel',
+    'Paulo Londra', 'Quevedo', 'Bizarrap', 'Duki', 'Tiago PZK', 'Beéle', 'De La Ghetto', 'Jowell & Randy', 'Kevvo', 'Eladio Carrión', 'Piso 21'],
+  pop: ['Camilo', 'Sebastián Yatra', 'Shakira', 'Morat', 'Reik', 'Manuel Turizo', 'Juanes', 'Fonseca', 'Mau y Ricky', 'Danny Ocean', 'Kany García',
+    'Ricardo Arjona', 'Luis Fonsi', 'Enrique Iglesias', 'Jesse & Joy', 'Pablo Alborán'],
+  popular: ['Jhonny Rivera', 'Jessi Uribe', 'Paola Jara', 'Pipe Bueno', 'Yeison Jiménez', 'Darío Gómez', 'Luis Alberto Posada', 'Giovany Ayala',
+    'El Charrito Negro', 'Francy', 'Arelys Henao', 'Alzate', 'Galileo y su Banda', 'Pipe Calderón', 'Luis Alfonso'],
+  regional: ['Grupo Frontera', 'Peso Pluma', 'Fuerza Regida', 'Carin León', 'Christian Nodal', 'Natanael Cano', 'Eslabón Armado', 'Junior H',
+    'Gerardo Ortiz', 'Calibre 50', 'Banda MS', 'Julión Álvarez', 'Grupo Firme', 'Los Ángeles Azules'],
+  bachata: ['Romeo Santos', 'Aventura', 'Prince Royce', 'Anthony Santos', 'Frank Reyes', 'Zacarías Ferreira', 'Raulín Rodríguez', 'Joe Veras', 'Monchy & Alexandra']
+};
+const GENRE_NAME = { vallenato: 'vallenato', salsa: 'salsa', urbano: 'reguetón y urbano', pop: 'pop latino', popular: 'música popular', regional: 'regional mexicano', bachata: 'bachata' };
+const GENRE_OF = (() => { const m = {}; Object.entries(GENRES).forEach(([g, l]) => l.forEach(n => { const k = norm(n); if (!m[k]) m[k] = g; })); return m; })();
+const genreOfName = n => GENRE_OF[norm(n)] || '';
+/** El género de un artista: por su nombre, o por sus artistas parecidos (se recuerda). */
+function genreOfArtist(id, name, rel) {
+  const g = genreOfName(name); if (g) return g;
+  const cache = LS.get('artgenre', {});
+  if (cache[id] !== undefined) return cache[id];
+  const cnt = {};
+  (rel || []).forEach(a => { const x = genreOfName(a.name); if (x) cnt[x] = (cnt[x] || 0) + 1; });
+  const best = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0];
+  const out = best && best[1] >= 2 ? best[0] : '';
+  if (rel && rel.length) { cache[id] = out; LS.set('artgenre', cache); }
+  return out;
+}
 /* Reproducción automática: al terminar la lista sigue con canciones parecidas */
 const autoplayOn = () => D.set.autoplay !== false;
 let extending = null;
@@ -1359,7 +1394,7 @@ function extendQueue() {
       const recent = P.q.slice(Math.max(0, P.i - 5), P.i + 1);
       const cnt = {}; recent.forEach(x => { if (x.artistId) cnt[x.artistId] = (cnt[x.artistId] || 0) + 1; });
       const main = +((Object.entries(cnt).sort((x, y) => y[1] - x[1])[0] || [])[0] || (P.cur && P.cur.artistId) || 0);
-      let same = [], similar = [];
+      let same = [], similar = [], genre = '';
       // Al terminar Tus favoritos (o una mezcla) empieza "Tu mezcla": casi todo de artistas parecidos y famosos
       const mixMode = !!(P.ctx && /^(Tus favoritos|Tu mezcla)/.test(P.ctx.name || ''));
       // Solo artistas que conoces (tus favoritos, lo que escuchas, los de Inicio) o muy famosos,
@@ -1373,11 +1408,16 @@ function extendQueue() {
           dz(`/artist/${main}/related?limit=20`).catch(() => ({ data: [] }))
         ]);
         same = shuffleArr((top.data || []).slice(0, 20).map(T).filter(keep)).slice(0, mixMode ? 2 : 6);
-        const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && (known.has(+a.id) || (a.nb_fan || 0) >= 2e6))).slice(0, 3);
-        const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && !rels.some(r => r.id === +a.id))).slice(0, mixMode ? 1 : 2);
-        // Como una mezcla: también entran éxitos de artistas latinos famosos (Bad Bunny, Anuel, Karol G…)
+        // Mismo género: si suena vallenato sigue vallenato, si es salsa sigue salsa…
+        const mainName = (recent.find(x => x.artistId === main) || {}).artist || '';
+        genre = genreOfArtist(main, mainName, rel.data);
+        const sameGenre = a => !genre || !genreOfName(a.name) || genreOfName(a.name) === genre;
+        const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && sameGenre(a) && (known.has(+a.id) || (a.nb_fan || 0) >= (genre ? 3e5 : 2e6)))).slice(0, 3);
+        const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && (!genre || genreOfName(a.name) === genre) && !rels.some(r => r.id === +a.id))).slice(0, mixMode ? 1 : 2);
+        // Como una mezcla: también entran éxitos de artistas famosos del mismo género (o latinos famosos si no se sabe)
         const nLatin = mixMode ? 5 : 3;
-        const latin = (await Promise.all(shuffleArr(LATIN.slice()).slice(0, nLatin + 2).map(n => artistByName(n).catch(() => null))))
+        const pool = genre ? GENRES[genre].filter(n => norm(n) !== norm(mainName)) : LATIN;
+        const latin = (await Promise.all(shuffleArr(pool.slice()).slice(0, nLatin + 2).map(n => artistByName(n).catch(() => null))))
           .filter(a => a && a.id !== main && !rels.some(r => r.id === a.id) && !favs.some(f => +f.id === a.id)).slice(0, nLatin);
         const tops = await Promise.all([...rels, ...favs, ...latin].map(a => dz(`/artist/${a.id}/top?limit=15`).catch(() => ({ data: [] }))));
         tops.forEach(j => similar.push(...hits(j, mixMode ? 2 : 3)));
@@ -1390,8 +1430,8 @@ function extendQueue() {
       add = add.slice(0, 15);
       if (!add.length) return false;
       P.q.push(...add); P.list.push(...add);
-      if (mixMode && P.autoMsg !== 'mix') { P.autoMsg = 'mix'; if (P.ctx) P.ctx = Object.assign({}, P.ctx, { name: 'Tu mezcla' }); toast('Sigue tu mezcla: canciones parecidas y éxitos latinos'); }
-      else if (main && P.autoMsg !== main) { P.autoMsg = main; const nm = (recent.find(x => x.artistId === main) || {}).artist; if (nm) toast(`Siguen más canciones de ${nm} y parecidas`); }
+      if (mixMode && P.autoMsg !== 'mix' + genre) { P.autoMsg = 'mix' + genre; if (P.ctx) P.ctx = Object.assign({}, P.ctx, { name: 'Tu mezcla' }); toast(genre ? 'Sigue tu mezcla de ' + GENRE_NAME[genre] : 'Sigue tu mezcla: canciones parecidas y éxitos latinos'); }
+      else if (main && P.autoMsg !== main) { P.autoMsg = main; const nm = (recent.find(x => x.artistId === main) || {}).artist; if (nm) toast(genre ? `Siguen más canciones de ${nm} y más ${GENRE_NAME[genre]}` : `Siguen más canciones de ${nm} y parecidas`); }
       if (ptab === 'q') renderQueueTab();
       return true;
     } catch (e) { return false; } finally { extending = null; }
