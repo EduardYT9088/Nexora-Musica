@@ -604,6 +604,15 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .bsw span{position:absolute;left:7px;bottom:5px;font-size:10.5px;font-weight:700;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 
 /* ---------- Actualización obligatoria ---------- */
+#betaEnd{position:fixed;inset:0;z-index:99;display:flex;align-items:center;justify-content:center;padding:calc(var(--st) + 20px) 26px calc(var(--sb) + 20px);background:var(--bg);text-align:center;touch-action:none}
+#betaEnd.hidden{display:none}
+#betaEnd .bbox{position:relative;max-width:380px;display:flex;flex-direction:column;align-items:center;gap:14px}
+#betaEnd .logo{width:112px;height:112px;border-radius:34px;box-shadow:0 18px 50px rgba(232,38,58,.35)}
+#betaEnd .btag{padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.08);color:var(--acc);font-weight:800;letter-spacing:3px;font-size:12px}
+#betaEnd h2{margin:0;font-size:30px}
+#betaEnd p{margin:0;color:var(--mut);line-height:1.55;font-size:15px}
+#betaEnd .rs-go{margin-top:8px;height:54px;font-size:16px}
+#betaEnd small{color:var(--mut);opacity:.7;margin-top:6px}
 #upd{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;padding:calc(var(--st) + 20px) 22px calc(var(--sb) + 20px);background:var(--bg);overflow-y:auto}
 #upd .ubg{position:fixed;inset:0;pointer-events:none;overflow:hidden}
 #upd .ubg i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;filter:blur(70px);opacity:.35;animation:drift 14s ease-in-out infinite alternate}
@@ -897,6 +906,17 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
   <div class="onb-bar"><div class="onb-sel" id="onbSel"></div><button class="btn fill" id="onbGo" disabled>Elige 4 más</button></div>
 </div>
 
+<div id="betaEnd" class="hidden" role="dialog" aria-modal="true" aria-labelledby="betaTitle">
+  <div class="ubg"><i></i><i></i></div>
+  <div class="bbox">
+    <div class="logo"><div class="bars"><i></i><i></i><i></i><i></i></div></div>
+    <span class="btag">BETA</span>
+    <h2 id="betaTitle">Beta terminada</h2>
+    <p>Gracias por probar BeatNX. Esta versión de prueba ya terminó. Descarga la versión oficial para seguir escuchando tu música: tus me gusta, playlists y descargas se quedan.</p>
+    <button class="rs-go" id="betaGo"><svg class="ic"><use href="#i-download"/></svg>Descargar la oficial</button>
+    <small id="betaFoot">BeatNX · Nexora · Eduard Gamer</small>
+  </div>
+</div>
 <div id="upd" class="hidden" role="dialog" aria-modal="true" aria-labelledby="updTitle">
   <div class="ubg"><i></i><i></i></div>
   <div class="ubox">
@@ -926,6 +946,7 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
    ========================================================= */
 const A = window.Android || null;
 const REPO = 'EduardYT9088/Nexora-Musica';   // GitHub lo cambia solo al compilar
+const BETA = null;                               // en una versión beta, GitHub pone aquí hasta cuándo funciona
 const PRIVACY_URL = 'https://eduardyt9088.github.io/Nexora-Musica/privacidad.html';
 const DZ = 'https://api.deezer.com';
 /* ===== Inicio de sesión: pega aquí los datos de tu proyecto de Firebase (ver instrucciones) ===== */
@@ -2923,7 +2944,7 @@ function settingsHTML() {
       <button class="mi" data-m="upd"><span class="ico" style="background:#F59E0B">${ic('update')}</span><div class="meta"><div class="t1">Buscar actualizaciones</div><small>Versión ${esc(appVersion())}</small></div>${ic('right')}</button>
       <button class="mi" data-m="about"><span class="ico" style="background:#8B5CF6">${ic('info')}</span><div class="meta"><div class="t1">Acerca de BeatNX</div><small>Créditos y licencia</small></div>${ic('right')}</button>
     </div>
-    <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer</div></div>`;
+    <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}${BETA ? ` · <b style="color:var(--acc)">BETA</b> hasta el ${new Date(BETA.until).toLocaleDateString('es')}` : ''}<br>© 2026 Nexora · Eduard Gamer</div></div>`;
 }
 function openSettings() {
   const el = pushPage(`<div class="set-top"><span class="ico">${ic('gear')}</span><h1>Configuración</h1></div><div id="setBody">${settingsHTML()}</div>`, 'Configuración');
@@ -2940,7 +2961,7 @@ function renderMe() {
       <div class="stat"><b>${D.likes.length}</b><small>Me gusta</small></div><div class="stat"><b>${D.pls.length}</b><small>Playlists</small></div></div>
     ${top.length ? `<div class="sh-h" style="margin-top:8px"><h2 class="sec">Lo que más escuchas</h2></div>${listHTML(top, { name: 'Lo que más escuchas' }, { rank: true })}` : ''}
     <button class="set-card" id="meSet"><span class="ico">${ic('gear')}</span><div class="meta"><b>Configuración</b><small>Color, nube, descargas, reproducción y más</small></div>${ic('right')}</button>
-    <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
+    <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}${BETA ? ` · <b style="color:var(--acc)">BETA</b> hasta el ${new Date(BETA.until).toLocaleDateString('es')}` : ''}<br>© 2026 Nexora · Eduard Gamer<br>Todos los derechos reservados.</div>`;
   $('#meEdit').onclick = profileSheet;
   $('#bnSet').onclick = openSettings; $('#meSet').onclick = openSettings;
   const sb = $('#setBody'); if (sb) sb.innerHTML = settingsHTML();
@@ -3481,13 +3502,37 @@ const fmtMB = b => (b / 1048576).toFixed(b >= 104857600 ? 0 : 1) + ' MB';
 function fmtEta(s) { if (!isFinite(s) || s < 0) return 'Calculando…'; s = Math.ceil(s); return s < 60 ? `Quedan ${s} s` : `Quedan ${Math.floor(s / 60)} min ${s % 60} s`; }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !U.open && Date.now() - (U.checkedAt || 0) > 10 * 60e3) checkUpdate(); });
 setInterval(() => { if (!document.hidden && !U.open && Date.now() - (U.checkedAt || 0) > 30 * 60e3) checkUpdate(); }, 5 * 60e3);
-async function checkUpdate(manual) {
+/* ---------- Versión beta: funciona unos días y después pide la oficial ---------- */
+function betaLeft() {
+  if (!BETA) return Infinity;
+  const seen = Math.max(Date.now(), +LS.get('betaSeen', 0) || 0);   // si atrasan la fecha del celular, no vuelve a funcionar
+  LS.set('betaSeen', seen);
+  return BETA.until - seen;
+}
+function betaGate() {
+  if (!BETA || betaLeft() > 0) return false;
+  const el = $('#betaEnd'); if (!el || !el.classList.contains('hidden')) return true;
+  try { stopEngines(); if (NAT && A.audioHalt) A.audioHalt(); } catch (e) {}
+  setPlaying(false); el.classList.remove('hidden');
+  $('#betaGo').onclick = async () => {
+    vib(12);
+    const ok = await checkUpdate(true, true);                         // descarga la oficial dentro de la app
+    if (!ok) { try { A.openUrl('https://github.com/' + REPO + '/releases/latest'); } catch (e) { location.href = 'https://github.com/' + REPO + '/releases/latest'; } }
+  };
+  return true;
+}
+if (BETA) {
+  setInterval(betaGate, 60e3);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) betaGate(); });
+}
+async function checkUpdate(manual, fromBeta) {
   U.checkedAt = Date.now();
+  if (BETA && !manual) return false;              // la beta no se actualiza sola
   if (!A || !A.updStart) { if (manual) toast('Las actualizaciones funcionan en la app instalada'); return false; }
   try {
     const info = JSON.parse(A.appInfo());
     const v = await getJSON(UPD_JSON + '?t=' + Date.now());
-    if (v && +v.code > +(info.code || 0)) { showUpdate(v, info); return true; }
+    if (v && (+v.code > +(info.code || 0) || (fromBeta && v.code))) { showUpdate(v, info); return true; }
     if (manual) toast('Ya tienes la última versión (' + (info.version || '') + ')');
   } catch (e) { if (manual) toast('No se pudo buscar actualizaciones. Revisa tu conexión'); }
   return false;
@@ -3680,6 +3725,11 @@ function hideSplash() {
     }, w);
     else setTimeout(() => cloudSync(), w + 1500);
     setTimeout(() => checkUpdate(false), w + 400);
+    if (BETA) setTimeout(() => {
+      if (betaGate()) return;
+      const d = Math.ceil(betaLeft() / 864e5);
+      toast(`Versión beta: ${d === 1 ? 'queda 1 día' : 'quedan ' + d + ' días'} de prueba`);
+    }, w + 600);
   }
 }
 setTimeout(hideSplash, 4000);

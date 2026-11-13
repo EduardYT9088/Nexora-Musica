@@ -8,6 +8,15 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      beta:
+        description: 'Versión BETA de prueba (deja de funcionar después de unos días)'
+        type: boolean
+        default: false
+      dias:
+        description: 'Días que funciona la beta'
+        type: number
+        default: 10
 
 permissions:
   contents: write
@@ -2166,10 +2175,14 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           RUN: ${{ github.run_number }}
+          BETA: ${{ inputs.beta }}
+          DIAS: ${{ inputs.dias }}
         run: |
           python3 - <<'PY'
-          import json, os, re
+          import json, os, re, time
           run = int(os.environ['RUN'])
+          beta = os.environ.get('BETA', '') == 'true'
+          dias = int(float(os.environ.get('DIAS') or 10)) if beta else 0
           ver = '1.0.' + str(run)
           lines = []
           try:
@@ -2192,13 +2205,19 @@ jobs:
           h = open(ip, encoding='utf-8').read()
           h = re.sub(r"const REPO = '[^']*';", "const REPO = '" + os.environ['REPO'] + "';", h, count=1)
           h = re.sub(r"const PRIVACY_URL = '[^']*';", "const PRIVACY_URL = 'https://" + owner.lower() + ".github.io/" + name + "/privacidad.html';", h, count=1)
+          until = 0
+          if beta:
+              # BETA: funciona 'dias' días desde hoy y después pide la versión oficial
+              until = int((time.time() + dias * 86400) * 1000)
+              h = re.sub(r"const BETA = null;", "const BETA = { until: " + str(until) + ", dias: " + str(dias) + " };", h, count=1)
+              code = code - 900                     # menor que la oficial: la oficial se instala encima sin problema
           open(ip, 'w', encoding='utf-8').write(h)
           opcional = any(l.lower().startswith('[opcional]') for l in lines)
           nov = [l[1:].strip() for l in lines if l.startswith('-') and l[1:].strip()]
           p = 'proyecto/app/build.gradle.kts'
           g = open(p, encoding='utf-8').read()
           g = re.sub(r'versionCode = \d+', 'versionCode = ' + str(code), g)
-          g = re.sub(r'versionName = "[^"]*"', 'versionName = "' + ver + '"', g)
+          g = re.sub(r'versionName = "[^"]*"', 'versionName = "' + ver + ('-beta' if beta else '') + '"', g)
           open(p, 'w', encoding='utf-8').write(g)
           base = 'https://github.com/' + os.environ['REPO'] + '/releases/latest/download/'
           info = {'version': ver, 'code': code, 'obligatoria': not opcional, 'novedades': nov,
@@ -2206,7 +2225,11 @@ jobs:
           json.dump(info, open('version.json', 'w', encoding='utf-8'), ensure_ascii=False)
           notes = 'BeatNX v' + ver + '\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX-arm64.apk (celulares de los últimos años) o BeatNX-armv7.apk (celulares antiguos y muchos televisores).'
           open('release-notes.md', 'w', encoding='utf-8').write(notes)
-          open(os.environ['GITHUB_OUTPUT'], 'a').write('version=' + ver + '\n')
+          if beta:
+              fin = time.strftime('%d/%m/%Y', time.gmtime(until / 1000))
+              notes = 'BeatNX BETA v' + ver + ' (prueba de ' + str(dias) + ' días, funciona hasta el ' + fin + ')\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX-Beta-arm64.apk (celulares de los últimos años) o BeatNX-Beta-armv7.apk (celulares antiguos). Al terminar la prueba, la app pide descargar la versión oficial.\n'
+              open('release-notes.md', 'w', encoding='utf-8').write(notes)
+          open(os.environ['GITHUB_OUTPUT'], 'a').write('version=' + ver + '\n' + 'beta=' + ('1' if beta else '') + '\n')
           print('Versión', ver, 'código', code)
           PY
 
@@ -2243,7 +2266,24 @@ jobs:
             BeatNX-arm64.apk
             BeatNX-armv7.apk
 
+      - name: Publicar BETA en Releases (no cambia la versión oficial)
+        if: steps.ver.outputs.beta == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          VER="${{ steps.ver.outputs.version }}"
+          cp BeatNX-arm64.apk BeatNX-Beta-arm64.apk
+          cp BeatNX-armv7.apk BeatNX-Beta-armv7.apk
+          gh release create "beta-v$VER-${{ github.run_number }}" BeatNX-Beta-arm64.apk BeatNX-Beta-armv7.apk \
+            --repo "$REPO" \
+            --target "${{ github.sha }}" \
+            --title "BeatNX BETA v$VER" \
+            --notes-file release-notes.md \
+            --prerelease --latest=false
+
       - name: Publicar en Releases
+        if: steps.ver.outputs.beta != '1'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
