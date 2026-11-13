@@ -2275,6 +2275,11 @@ jobs:
           VER="${{ steps.ver.outputs.version }}"
           cp BeatNX-arm64.apk BeatNX-Beta-arm64.apk
           cp BeatNX-armv7.apk BeatNX-Beta-armv7.apk
+          # Solo queda la beta más nueva: se borran las betas anteriores
+          gh api "repos/$REPO/releases?per_page=100" --jq '.[] | select(.prerelease and (.tag_name | startswith("beta-"))) | .tag_name' | while read -r OLD; do
+            echo "Borrando beta anterior: $OLD"
+            gh release delete "$OLD" --repo "$REPO" --yes --cleanup-tag || true
+          done
           gh release create "beta-v$VER-${{ github.run_number }}" BeatNX-Beta-arm64.apk BeatNX-Beta-armv7.apk \
             --repo "$REPO" \
             --target "${{ github.sha }}" \
