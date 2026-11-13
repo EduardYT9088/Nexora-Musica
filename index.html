@@ -1360,6 +1360,8 @@ function extendQueue() {
       const cnt = {}; recent.forEach(x => { if (x.artistId) cnt[x.artistId] = (cnt[x.artistId] || 0) + 1; });
       const main = +((Object.entries(cnt).sort((x, y) => y[1] - x[1])[0] || [])[0] || (P.cur && P.cur.artistId) || 0);
       let same = [], similar = [];
+      // Al terminar Tus favoritos (o una mezcla) empieza "Tu mezcla": casi todo de artistas parecidos y famosos
+      const mixMode = !!(P.ctx && /^(Tus favoritos|Tu mezcla)/.test(P.ctx.name || ''));
       // Solo artistas que conoces (tus favoritos, lo que escuchas, los de Inicio) o muy famosos,
       // y solo sus canciones más escuchadas: nada de canciones raras
       const known = new Set([...(D.set.favArtists || []).map(a => +a.id), ...D.hist.slice(0, 120).map(x => +x.artistId),
@@ -1370,15 +1372,16 @@ function extendQueue() {
           dz(`/artist/${main}/top?limit=30`).catch(() => ({ data: [] })),
           dz(`/artist/${main}/related?limit=20`).catch(() => ({ data: [] }))
         ]);
-        same = shuffleArr((top.data || []).slice(0, 20).map(T).filter(keep)).slice(0, 6);
+        same = shuffleArr((top.data || []).slice(0, 20).map(T).filter(keep)).slice(0, mixMode ? 2 : 6);
         const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && (known.has(+a.id) || (a.nb_fan || 0) >= 2e6))).slice(0, 3);
-        const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && !rels.some(r => r.id === +a.id))).slice(0, 2);
+        const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && !rels.some(r => r.id === +a.id))).slice(0, mixMode ? 1 : 2);
         // Como una mezcla: también entran éxitos de artistas latinos famosos (Bad Bunny, Anuel, Karol G…)
-        const latin = (await Promise.all(shuffleArr(LATIN.slice()).slice(0, 4).map(n => artistByName(n).catch(() => null))))
-          .filter(a => a && a.id !== main && !rels.some(r => r.id === a.id) && !favs.some(f => +f.id === a.id)).slice(0, 3);
+        const nLatin = mixMode ? 5 : 3;
+        const latin = (await Promise.all(shuffleArr(LATIN.slice()).slice(0, nLatin + 2).map(n => artistByName(n).catch(() => null))))
+          .filter(a => a && a.id !== main && !rels.some(r => r.id === a.id) && !favs.some(f => +f.id === a.id)).slice(0, nLatin);
         const tops = await Promise.all([...rels, ...favs, ...latin].map(a => dz(`/artist/${a.id}/top?limit=15`).catch(() => ({ data: [] }))));
-        tops.forEach(j => similar.push(...hits(j, 3)));
-        similar = shuffleArr(similar.filter((x, k, arr) => arr.findIndex(y => y.id === x.id) === k)).slice(0, 10);
+        tops.forEach(j => similar.push(...hits(j, mixMode ? 2 : 3)));
+        similar = shuffleArr(similar.filter((x, k, arr) => arr.findIndex(y => y.id === x.id) === k)).slice(0, mixMode ? 14 : 10);
       }
       // Mezcla: 1 del mismo artista por cada 2 parecidas (mismo estilo)
       let add = [];
@@ -1387,7 +1390,8 @@ function extendQueue() {
       add = add.slice(0, 15);
       if (!add.length) return false;
       P.q.push(...add); P.list.push(...add);
-      if (main && P.autoMsg !== main) { P.autoMsg = main; const nm = (recent.find(x => x.artistId === main) || {}).artist; if (nm) toast(`Siguen más canciones de ${nm} y parecidas`); }
+      if (mixMode && P.autoMsg !== 'mix') { P.autoMsg = 'mix'; if (P.ctx) P.ctx = Object.assign({}, P.ctx, { name: 'Tu mezcla' }); toast('Sigue tu mezcla: canciones parecidas y éxitos latinos'); }
+      else if (main && P.autoMsg !== main) { P.autoMsg = main; const nm = (recent.find(x => x.artistId === main) || {}).artist; if (nm) toast(`Siguen más canciones de ${nm} y parecidas`); }
       if (ptab === 'q') renderQueueTab();
       return true;
     } catch (e) { return false; } finally { extending = null; }
@@ -2550,7 +2554,7 @@ function favHTML() {
   const fa = D.set.favArtists || [];
   if (!FAVLIST.length && !fa.length) return '';
   return `<div class="sh-h"><h2 class="sec">Tus favoritos del momento</h2>${FAVLIST.length ? `<div class="fav-btns"><button data-favshuf aria-label="Reproducir en aleatorio" title="Aleatorio">${ic('shuffle')}</button><button data-favplay>${ic('play', 1)}Reproducir</button></div>` : ''}</div>
-    ${FAVLIST.length ? `<div class="panel">${listHTML(FAVLIST, { name: 'Tus favoritos del momento' }, { limit: 6 })}</div>` : ''}
+    ${FAVLIST.length ? `<div class="panel">${listHTML(FAVLIST.slice(0, 8), { name: 'Tus favoritos del momento' }, { limit: 6 })}</div>` : ''}
     ${fa.length ? `<div class="sh-h"><h2 class="sec">Tus artistas</h2><button data-onb>Editar${ic('right')}</button></div><div class="hscroll">${fa.map(a => card({ go: 'artist:' + a.id, img: a.img, t1: a.name, t2: 'Artista', round: true })).join('')}</div>` : ''}`;
 }
 async function buildForYou() {
@@ -2931,8 +2935,8 @@ document.addEventListener('click', e => {
     if (L) { if (t.closest('#v-search')) saveRecentSearch($('#q').value); playList(L.tracks, +row.dataset.i, L.ctx); }
     return;
   }
-  if (t.closest('[data-favplay]')) { if (FAVLIST.length) playList(FAVLIST, 0, { name: 'Tus favoritos del momento' }); return; }
-  if (t.closest('[data-favshuf]')) { if (FAVLIST.length) { vib(10); playList(shuffleArr(FAVLIST.slice()), 0, { name: 'Tus favoritos del momento · Aleatorio' }); toast('Tus favoritos en aleatorio'); } return; }
+  if (t.closest('[data-favplay]')) { if (FAVLIST.length) playList(FAVLIST.slice(0, 8), 0, { name: 'Tus favoritos del momento' }); return; }
+  if (t.closest('[data-favshuf]')) { if (FAVLIST.length) { vib(10); playList(shuffleArr(FAVLIST.slice(0, 8)), 0, { name: 'Tus favoritos del momento · Aleatorio' }); toast('Tus favoritos en aleatorio'); } return; }
   if (t.closest('[data-onb]')) { openOnb(false); return; }
   const pg = t.closest('[data-playgo]');
   if (pg) { playGo(pg.dataset.playgo); return; }

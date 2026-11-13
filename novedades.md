@@ -1,4 +1,6 @@
-Versión: 1.0.8
+Versión: 1.0.9
+- Al terminar Tus favoritos del momento empieza "Tu mezcla": canciones parecidas y éxitos de artistas latinos famosos, como en Spotify
+- Tus favoritos ahora suena las canciones que ves (8) y luego sigue la mezcla, sin repetir siempre a los mismos artistas
 - Sin internet la música se pausa (no salta canciones) y cuando vuelve la conexión sigue sola en el mismo segundo
 - Las canciones descargadas siguen sonando sin internet
 - "Tus favoritos del momento" cambia cada vez que abres o recargas Inicio: otras canciones y otro orden
