@@ -62,8 +62,8 @@ jobs:
           APPEOF
           cat > build.gradle.kts <<'APPEOF'
           plugins {
-              id("com.android.application") version "8.5.2" apply false
-              id("org.jetbrains.kotlin.android") version "1.9.24" apply false
+              id("com.android.application") version "8.10.1" apply false
+              id("org.jetbrains.kotlin.android") version "2.1.20" apply false
           }
           APPEOF
           cat > gradle.properties <<'APPEOF'
@@ -71,6 +71,7 @@ jobs:
           android.useAndroidX=true
           android.nonTransitiveRClass=true
           kotlin.code.style=official
+          android.suppressUnsupportedCompileSdk=36
           APPEOF
           mkdir -p app
           cat > app/build.gradle.kts <<'APPEOF'
@@ -81,14 +82,17 @@ jobs:
 
           android {
               namespace = "com.nexora.musicanx"
-              compileSdk = 34
+              compileSdk = 36
 
               defaultConfig {
                   applicationId = "com.nexora.musicanx"
-                  minSdk = 26
-                  targetSdk = 34
+                  // Desde Android 7 (celulares y TV antiguos) hasta Android 16
+                  minSdk = 24
+                  targetSdk = 36
                   versionCode = 1
                   versionName = "1.0.0"
+                  // Un solo APK para todos: procesadores de 64 y 32 bits
+                  ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
               }
 
               signingConfigs {
@@ -106,16 +110,6 @@ jobs:
                       isMinifyEnabled = false
                       isShrinkResources = false
                       signingConfig = signingConfigs.getByName("release")
-                  }
-              }
-
-              // Un APK por tipo de procesador (el motor incluye Python y pesa)
-              splits {
-                  abi {
-                      isEnable = true
-                      reset()
-                      include("arm64-v8a", "armeabi-v7a")
-                      isUniversalApk = false
                   }
               }
 
@@ -175,7 +169,7 @@ jobs:
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
                   android:roundIcon="@mipmap/ic_launcher"
-                  android:banner="@drawable/ic_launcher_fg"
+                  android:banner="@drawable/tv_banner"
                   android:label="@string/app_name"
                   android:theme="@style/Theme.App"
                   android:hardwareAccelerated="true"
@@ -220,6 +214,8 @@ jobs:
           import android.content.Context
           import android.content.Intent
           import android.content.pm.PackageManager
+          import android.content.res.Configuration
+          import android.graphics.Color
           import android.net.Uri
           import android.os.Build
           import android.os.Bundle
@@ -228,6 +224,9 @@ jobs:
           import android.os.VibrationEffect
           import android.os.Vibrator
           import android.view.View
+          import android.view.WindowInsets
+          import android.view.WindowManager
+          import android.window.OnBackInvokedDispatcher
           import android.view.ViewGroup
           import android.webkit.CookieManager
           import android.webkit.JavascriptInterface
@@ -406,6 +405,56 @@ jobs:
                   emit(JSONObject().put("type", "account").put("logged", Yt.logged(this)))
               }
 
+              // ---------- TV y bordes de pantalla ----------
+              private var edge = false
+              @Volatile private var insT = 0f
+              @Volatile private var insB = 0f
+
+              /** ¿Es un televisor? (Android TV, Google TV, Fire TV, cajas con Android) */
+              fun isTv(): Boolean {
+                  val um = getSystemService(Context.UI_MODE_SERVICE) as? android.app.UiModeManager
+                  return (um?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION) ||
+                      packageManager.hasSystemFeature("android.software.leanback") ||
+                      packageManager.hasSystemFeature("amazon.hardware.fire_tv") ||
+                      !packageManager.hasSystemFeature("android.hardware.touchscreen")
+              }
+
+              /** Pantalla completa de borde a borde (Android 11+; obligatorio desde Android 15). */
+              @Suppress("DEPRECATION")
+              private fun setupEdgeToEdge() {
+                  if (Build.VERSION.SDK_INT < 30) return
+                  edge = true
+                  window.setDecorFitsSystemWindows(false)
+                  window.statusBarColor = Color.TRANSPARENT
+                  window.navigationBarColor = Color.TRANSPARENT
+                  window.isNavigationBarContrastEnforced = false
+                  window.isStatusBarContrastEnforced = false
+                  window.attributes = window.attributes.apply { layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES }
+                  root.setOnApplyWindowInsetsListener { v, ins ->
+                      val d = resources.displayMetrics.density
+                      val bars = ins.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.displayCutout())
+                      val ime = ins.getInsets(WindowInsets.Type.ime()).bottom
+                      // Con el teclado abierto la página se achica para que lo escrito se vea
+                      v.setPadding(0, 0, 0, if (ime > bars.bottom) ime else 0)
+                      insT = bars.top / d
+                      insB = if (ime > bars.bottom) 0f else bars.bottom / d
+                      pushInsets()
+                      ins
+                  }
+              }
+
+              private fun pushInsets() { if (edge) js("window.nxInsets && nxInsets($insT, $insB)") }
+
+              /** Botón Atrás (también el del control de la TV). */
+              private fun handleBack() {
+                  if (customView != null) { chrome.onHideCustomView(); return }
+                  webView.evaluateJavascript("(window.appBack && window.appBack()) ? 'y' : 'n'") { r ->
+                      if (r?.contains("y") != true) {
+                          if (webView.canGoBack()) webView.goBack() else moveTaskToBack(true)
+                      }
+                  }
+              }
+
               @SuppressLint("SetJavaScriptEnabled")
               override fun onCreate(savedInstanceState: Bundle?) {
                   super.onCreate(savedInstanceState)
@@ -418,6 +467,11 @@ jobs:
                   webView.isHorizontalScrollBarEnabled = false
                   root.addView(webView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                   setContentView(root)
+                  setupEdgeToEdge()
+                  // Android 13+: Atrás con el sistema nuevo (Android 16 ya no usa onBackPressed)
+                  if (Build.VERSION.SDK_INT >= 33) {
+                      onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) { handleBack() }
+                  }
 
                   webView.settings.apply {
                       javaScriptEnabled = true
@@ -430,6 +484,7 @@ jobs:
                   }
                   webView.isFocusable = true
                   webView.isFocusableInTouchMode = true
+                  if (isTv()) webView.requestFocus()               // en la TV el control remoto maneja la página
                   webView.addJavascriptInterface(Bridge(), "Android")
                   // El reproductor oficial de YouTube necesita cookies para funcionar dentro de la app
                   CookieManager.getInstance().setAcceptCookie(true)
@@ -456,6 +511,8 @@ jobs:
                               WebResourceResponse("text/plain", "utf-8", 404, "Not Found", emptyMap(), "".byteInputStream())
                           }
                       }
+
+                      override fun onPageFinished(view: WebView, url: String?) { pushInsets() }
 
                       override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                           val url = request.url
@@ -544,10 +601,13 @@ jobs:
                       .put("version", versionName())
                       .put("package", packageName)
                       .put("sdk", Build.VERSION.SDK_INT)
-                      .put("tv", packageManager.hasSystemFeature("android.software.leanback"))
+                      .put("tv", isTv())
                       .put("code", versionCode())
                       .put("abi", Build.SUPPORTED_ABIS.firstOrNull() ?: "")
                       .toString()
+
+                  /** Bordes de la pantalla (barra de estado arriba y de gestos abajo), en px de la página. */
+                  @JavascriptInterface fun insets(): String = JSONObject().put("ok", edge).put("t", insT).put("b", insB).toString()
 
                   @JavascriptInterface fun toast(msg: String) = runOnUiThread {
                       Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
@@ -579,7 +639,7 @@ jobs:
                               val u = Uri.parse(url)
                               if (u.scheme != "https" || u.host !in ALLOWED_HOSTS) throw Exception("Servidor no permitido")
                               reply(id, true, fetchText(url, mapOf(
-                                  "User-Agent" to "BeatNX/" + versionName() + " (Android)",
+                                  "User-Agent" to "MusicaNX/" + versionName() + " (Android)",
                                   "Accept" to "application/json")))
                           } catch (e: Exception) {
                               reply(id, false, e.message ?: "Sin conexión")
@@ -722,14 +782,7 @@ jobs:
 
               // Atrás: primero le pregunta a index.html si tiene algo abierto (menú, hoja, pantalla).
               @Deprecated("Deprecated in Java")
-              override fun onBackPressed() {
-                  if (customView != null) { chrome.onHideCustomView(); return }
-                  webView.evaluateJavascript("(window.appBack && window.appBack()) ? 'y' : 'n'") { r ->
-                      if (r?.contains("y") != true) {
-                          if (webView.canGoBack()) webView.goBack() else moveTaskToBack(true)
-                      }
-                  }
-              }
+              override fun onBackPressed() { handleBack() }
 
               override fun onSaveInstanceState(outState: Bundle) {
                   super.onSaveInstanceState(outState)
@@ -1001,7 +1054,7 @@ jobs:
           import java.net.URL
 
           /**
-           * Reproduce la música de BeatNX en segundo plano (con ExoPlayer, ver Px), con controles en la notificación,
+           * Reproduce la música de Música NX en segundo plano (con ExoPlayer, ver Px), con controles en la notificación,
            * en la pantalla de bloqueo y en los audífonos. Precarga la siguiente canción para que
            * el cambio sea inmediato aunque la app esté cerrada o la pantalla apagada.
            * Todo se llama desde el hilo principal.
@@ -1030,7 +1083,8 @@ jobs:
                       if (s != null) { s.start(o); return }
                       pendingPlay = o
                       try {
-                          c.startForegroundService(Intent(c, AudioService::class.java).setAction(ACT_START))
+                          val i = Intent(c, AudioService::class.java).setAction(ACT_START)
+                          if (Build.VERSION.SDK_INT >= 26) c.startForegroundService(i) else c.startService(i)
                       } catch (e: Exception) {
                           pendingPlay = null
                           MainActivity.emit(JSONObject().put("type", "bg").put("state", "error").put("id", o.optString("id")))
@@ -1283,8 +1337,10 @@ jobs:
               }
 
               // ---------- Foco de audio (llamadas, otras apps) ----------
+              @Suppress("DEPRECATION")
               private fun requestFocus() {
                   val am = getSystemService(AudioManager::class.java) ?: return
+                  if (Build.VERSION.SDK_INT < 26) { am.requestAudioFocus(focusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN); return }
                   val r = focusReq ?: AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                       .setAudioAttributes(AudioAttributes.Builder()
                           .setUsage(AudioAttributes.USAGE_MEDIA)
@@ -1294,8 +1350,10 @@ jobs:
                   am.requestAudioFocus(r)
               }
 
+              @Suppress("DEPRECATION")
               private fun abandonFocus() {
                   val am = getSystemService(AudioManager::class.java) ?: return
+                  if (Build.VERSION.SDK_INT < 26) { am.abandonAudioFocus(focusListener); return }
                   focusReq?.let { am.abandonAudioFocusRequest(it) }
               }
 
@@ -1350,7 +1408,7 @@ jobs:
 
               private fun showNotification() {
                   val nm = getSystemService(NotificationManager::class.java) ?: return
-                  if (nm.getNotificationChannel(CH) == null) {
+                  if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel(CH) == null) {
                       nm.createNotificationChannel(NotificationChannel(CH, "Reproducción", NotificationManager.IMPORTANCE_LOW).apply {
                           setShowBadge(false)
                           description = "Controles de la música que suena"
@@ -1361,7 +1419,9 @@ jobs:
                   val open = PendingIntent.getActivity(this, 0,
                       Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
                       PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                  val n = Notification.Builder(this, CH)
+                  @Suppress("DEPRECATION")
+                  val nb = if (Build.VERSION.SDK_INT >= 26) Notification.Builder(this, CH) else Notification.Builder(this).setPriority(Notification.PRIORITY_LOW)
+                  val n = nb
                       .setSmallIcon(R.drawable.ic_launcher_mono)
                       .setContentTitle(info.optString("title").ifEmpty { "BeatNX" })
                       .setContentText(info.optString("artist"))
@@ -1707,7 +1767,7 @@ jobs:
           import java.net.URL
 
           /**
-           * Descarga la nueva versión de BeatNX desde GitHub y la instala encima, dentro de la app.
+           * Descarga la nueva versión de Música NX desde GitHub y la instala encima, dentro de la app.
            * Avisa del avance (bytes descargados y total) para mostrar porcentaje, velocidad y tiempo.
            * Android siempre muestra su ventana de confirmación antes de instalar.
            */
@@ -1719,11 +1779,14 @@ jobs:
                       .put("done", done).put("total", total).put("msg", msg))
               }
 
-              fun canInstall(act: Activity): Boolean = act.packageManager.canRequestPackageInstalls()
+              // Android 7 no pide permiso por app: Android pregunta al instalar
+              fun canInstall(act: Activity): Boolean = if (android.os.Build.VERSION.SDK_INT >= 26) act.packageManager.canRequestPackageInstalls() else true
 
               fun openPermission(act: Activity) {
                   runCatching {
-                      act.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + act.packageName)))
+                      if (android.os.Build.VERSION.SDK_INT >= 26)
+                          act.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + act.packageName)))
+                      else act.startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
                   }
               }
 
@@ -1731,7 +1794,7 @@ jobs:
                   if (running) return
                   if (!apkUrl.startsWith("https://github.com/")) { emit("error", msg = "Enlace no válido"); return }
                   if (!canInstall(act)) {
-                      // Primero hay que permitir "Instalar apps desconocidas" para BeatNX.
+                      // Primero hay que permitir "Instalar apps desconocidas" para Música NX.
                       emit("perm")
                       openPermission(act)
                       return
@@ -2112,6 +2175,13 @@ jobs:
           </vector>
           APPEOF
           # Ícono de BeatNX: las imágenes de la carpeta icono/ del repositorio (si no están, el dibujo de arriba)
+          # Banner para el menú de la TV (Android TV / Google TV)
+          if [ -f ../icono/banner.png ]; then
+            mkdir -p app/src/main/res/drawable-xhdpi
+            cp ../icono/banner.png app/src/main/res/drawable-xhdpi/tv_banner.png
+          else
+            cp app/src/main/res/drawable/ic_launcher_foreground.xml app/src/main/res/drawable/tv_banner.xml
+          fi
           if [ -f ../icono/fg-xxxhdpi.png ]; then
             for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
               mkdir -p app/src/main/res/drawable-$d
@@ -2163,7 +2233,7 @@ jobs:
           APPEOF
           # Todo lo web del repo va a assets (index.html, css, js, imágenes…)
           mkdir -p app/src/main/assets
-          (cd .. && tar cf - --exclude=./.git --exclude=./.github --exclude=./proyecto --exclude='*.md' --exclude='./icono/fg-*' --exclude=./icono/playstore-512.png .) | tar xf - -C app/src/main/assets
+          (cd .. && tar cf - --exclude=./.git --exclude=./.github --exclude=./proyecto --exclude='*.md' --exclude='./icono/fg-*' --exclude=./icono/playstore-512.png --exclude=./icono/banner.png .) | tar xf - -C app/src/main/assets
 
       # Firma de BeatNX: NO la cambies nunca (si cambia, Android no deja actualizar la app).
       # Las contraseñas están en Secrets; sin ellas este archivo no sirve para firmar.
@@ -2221,16 +2291,36 @@ jobs:
           open(p, 'w', encoding='utf-8').write(g)
           base = 'https://github.com/' + os.environ['REPO'] + '/releases/latest/download/'
           info = {'version': ver, 'code': code, 'obligatoria': not opcional, 'novedades': nov,
-                  'apk': base + 'BeatNX-arm64.apk', 'apk_arm64': base + 'BeatNX-arm64.apk', 'apk_armv7': base + 'BeatNX-armv7.apk'}
+                  'apk': base + 'BeatNX.apk', 'apk_arm64': base + 'BeatNX.apk', 'apk_armv7': base + 'BeatNX.apk'}
           json.dump(info, open('version.json', 'w', encoding='utf-8'), ensure_ascii=False)
-          notes = 'BeatNX v' + ver + '\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX-arm64.apk (celulares de los últimos años) o BeatNX-armv7.apk (celulares antiguos y muchos televisores).'
+          notes = 'BeatNX v' + ver + '\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX.apk: un solo archivo para celulares (Android 7 a 16), tablets y televisores (Android TV, Google TV y Fire TV).'
           open('release-notes.md', 'w', encoding='utf-8').write(notes)
           if beta:
               fin = time.strftime('%d/%m/%Y', time.gmtime(until / 1000))
-              notes = 'BeatNX BETA v' + ver + ' (prueba de ' + str(dias) + ' días, funciona hasta el ' + fin + ')\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX-Beta-arm64.apk (celulares de los últimos años) o BeatNX-Beta-armv7.apk (celulares antiguos). Al terminar la prueba, la app pide descargar la versión oficial.\n'
+              notes = 'BeatNX BETA v' + ver + ' (prueba de ' + str(dias) + ' días, funciona hasta el ' + fin + ')\n\n' + ''.join('- ' + x + '\n' for x in nov) + '\nDescarga BeatNX-Beta.apk: un solo archivo para celulares, tablets y televisores. Al terminar la prueba, la app pide descargar la versión oficial.\n'
               open('release-notes.md', 'w', encoding='utf-8').write(notes)
           open(os.environ['GITHUB_OUTPUT'], 'a').write('version=' + ver + '\n' + 'beta=' + ('1' if beta else '') + '\n')
           print('Versión', ver, 'código', code)
+          PY
+
+      - name: Compatibilidad con celulares y TV antiguos (JavaScript)
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          p = 'proyecto/app/src/main/assets/index.html'
+          h = open(p, encoding='utf-8').read()
+          a = h.index('<script>') + len('<script>'); b = h.rindex('</script>')
+          open('/tmp/app.js', 'w', encoding='utf-8').write(h[a:b])
+          r = subprocess.run(['npx', '--yes', 'esbuild@0.24.0', '/tmp/app.js', '--target=chrome69', '--charset=utf8',
+                              '--log-level=warning', '--outfile=/tmp/app.out.js'], capture_output=True, text=True)
+          print(r.stdout, r.stderr)
+          ok = r.returncode == 0 and subprocess.run(['node', '--check', '/tmp/app.out.js']).returncode == 0
+          if ok:
+              out = open('/tmp/app.out.js', encoding='utf-8').read()
+              open(p, 'w', encoding='utf-8').write(h[:a] + '\n' + out + h[b:])
+              print('JavaScript adaptado para WebView antiguos')
+          else:
+              print('No se pudo adaptar: se deja el original')
           PY
 
       - name: Instalar Java 17
@@ -2242,7 +2332,7 @@ jobs:
       - name: Instalar Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.7'
+          gradle-version: '8.11.1'
 
       - name: Compilar APK
         working-directory: proyecto
@@ -2254,33 +2344,29 @@ jobs:
 
       - name: Renombrar APK
         run: |
-          ls proyecto/app/build/outputs/apk/release/
-          cp proyecto/app/build/outputs/apk/release/app-arm64-v8a-release.apk BeatNX-arm64.apk
-          cp proyecto/app/build/outputs/apk/release/app-armeabi-v7a-release.apk BeatNX-armv7.apk
+          ls -la proyecto/app/build/outputs/apk/release/
+          cp proyecto/app/build/outputs/apk/release/app-release.apk BeatNX.apk
 
       - name: Guardar APK en la compilación
         uses: actions/upload-artifact@v4
         with:
           name: BeatNX-apk
-          path: |
-            BeatNX-arm64.apk
-            BeatNX-armv7.apk
+          path: BeatNX.apk
 
       - name: Publicar BETA en Releases (no cambia la versión oficial)
-        if: steps.ver.outputs.beta == '1'
+        if: steps.ver.outputs.beta == '1' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
           VER="${{ steps.ver.outputs.version }}"
-          cp BeatNX-arm64.apk BeatNX-Beta-arm64.apk
-          cp BeatNX-armv7.apk BeatNX-Beta-armv7.apk
+          cp BeatNX.apk BeatNX-Beta.apk
           # Solo queda la beta más nueva: se borran las betas anteriores
           gh api "repos/$REPO/releases?per_page=100" --jq '.[] | select(.prerelease and (.tag_name | startswith("beta-"))) | .tag_name' | while read -r OLD; do
             echo "Borrando beta anterior: $OLD"
             gh release delete "$OLD" --repo "$REPO" --yes --cleanup-tag || true
           done
-          gh release create "beta-v$VER-${{ github.run_number }}" BeatNX-Beta-arm64.apk BeatNX-Beta-armv7.apk \
+          gh release create "beta-v$VER-${{ github.run_number }}" BeatNX-Beta.apk \
             --repo "$REPO" \
             --target "${{ github.sha }}" \
             --title "BeatNX BETA v$VER" \
@@ -2288,7 +2374,7 @@ jobs:
             --prerelease --latest=false
 
       - name: Publicar en Releases
-        if: steps.ver.outputs.beta != '1'
+        if: steps.ver.outputs.beta != '1' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -2296,7 +2382,7 @@ jobs:
           VER="${{ steps.ver.outputs.version }}"
           TAG="v$VER"
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then TAG="v$VER-build${{ github.run_number }}"; fi
-          gh release create "$TAG" BeatNX-arm64.apk BeatNX-armv7.apk version.json \
+          gh release create "$TAG" BeatNX.apk version.json \
             --repo "$REPO" \
             --target "${{ github.sha }}" \
             --title "BeatNX v$VER" \
