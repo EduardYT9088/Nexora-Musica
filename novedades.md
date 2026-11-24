@@ -1,4 +1,10 @@
-Versión: 1.1.0
+Versión: 1.2.0
+- Ahora funciona en televisores: Android TV, Google TV, Fire TV y cajas TV, con el control remoto (flechas, OK y Atrás)
+- En TV, tablets y celular acostado: menú al costado y reproductor en dos columnas con la letra grande
+- Un solo APK para todos los celulares, desde Android 7 hasta Android 16
+- Pantalla completa de borde a borde en los celulares nuevos
+- Más animada: fondo de colores en movimiento, títulos con brillo, tarjetas y listas que aparecen con animación
+- Botones del control multimedia: play/pausa, siguiente, anterior, adelantar y atrasar
 - La mezcla respeta el género: si escuchas vallenato sigue vallenato, si es salsa sigue salsa (también reguetón, pop latino, música popular, regional mexicano y bachata)
 - Al terminar Tus favoritos del momento empieza "Tu mezcla": canciones parecidas y éxitos de artistas latinos famosos, como en Spotify
 - Tus favoritos ahora suena las canciones que ves (8) y luego sigue la mezcla, sin repetir siempre a los mismos artistas
