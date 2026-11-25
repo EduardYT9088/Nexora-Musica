@@ -1,4 +1,12 @@
-Versión: 1.2.0
+Versión: 1.2.1
+- La app aprende lo que NO te gusta: si pasas rápido canciones que te recomendó, deja de mostrarlas
+- Nuevo en el menú ⋯ de cada canción: «No me gusta esta canción» y «No recomendar a este artista»
+- En la página de un artista: botón para no recomendarlo más
+- Inicio y la mezcla automática ya no muestran lo que ocultaste, y salen más los artistas que tú escuchas
+- En Configuración: «Música que no te gusta» para ver lo oculto y volver a mostrarlo
+- Lo que ocultas se guarda en tu cuenta y en la nube
+
+Versión 1.2.0
 - Ahora funciona en televisores: Android TV, Google TV, Fire TV y cajas TV, con el control remoto (flechas, OK y Atrás)
 - En TV, tablets y celular acostado: menú al costado y reproductor en dos columnas con la letra grande
 - Un solo APK para todos los celulares, desde Android 7 hasta Android 16

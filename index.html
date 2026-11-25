@@ -738,6 +738,19 @@ body.tv #aurora{opacity:.4}
 
 .tvonly{display:none!important}
 body.tv .tvonly,body.wide .tvonly{display:grid!important}
+
+/* Música que no te gusta */
+.nope-help{margin:4px 2px 14px;font-size:14px;line-height:1.5;color:var(--mut)}
+.nope-help b{color:var(--text)}
+.nope-empty{margin:2px 4px 16px;font-size:13.5px;line-height:1.45;color:var(--dim)}
+.nope-row{cursor:default}
+.nope-row .meta{min-width:0}
+.nope-row .t1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nope-un{flex:none;padding:8px 14px!important;font-size:13px!important;min-height:0!important}
+.nope-help,.nope-empty{margin-left:16px!important;margin-right:16px!important}
+.nope-pill{position:relative;z-index:2;display:inline-flex;align-items:center;gap:6px;margin:10px auto 0;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--mut);font:600 12.5px var(--font)}
+.nope-pill .ic{width:15px;height:15px}
+.nope-pill.on{color:#FB7185;border-color:rgba(244,63,94,.45);background:rgba(244,63,94,.14)}
 </style>
 </head>
 <body class="booting">
@@ -794,6 +807,7 @@ body.tv .tvonly,body.wide .tvonly{display:grid!important}
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></symbol>
   <symbol id="i-dlok" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none"/><path d="M12 7.5v7M9 11.8l3 3 3-3" stroke="#07070D" stroke-width="2.2"/></symbol>
   <symbol id="i-wifioff" viewBox="0 0 24 24"><path d="M2 8.5a15 15 0 0 1 4.2-2.6M9.6 5.1A15 15 0 0 1 22 8.5M5 12a10 10 0 0 1 3.5-2M13 9.6a10 10 0 0 1 6 2.4M8.5 15.5a5 5 0 0 1 7 0M12 19.5h.01M3 3l18 18"/></symbol>
+  <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M5.7 5.7l12.6 12.6"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></symbol>
 </svg>
 
@@ -1045,7 +1059,7 @@ const norm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ
 /* ---------- Datos guardados en el teléfono ---------- */
 /* Cada cuenta tiene sus propios me gusta, playlists, descargas, historial y perfil.
    La cuenta que ya estaba usando la app conserva los datos de siempre (sin prefijo). */
-const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou', 'session', 'interrupted']);
+const SCOPED = new Set(['likes', 'pls', 'albums', 'artists', 'hist', 'plays', 'stats', 'set', 'rs', 'recent', 'offline', 'foryou', 'session', 'interrupted', 'nope']);
 const LS = {
   get(k, d) { try { const v = localStorage.getItem('nx.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem('nx.' + k, JSON.stringify(v)); } catch (e) {} }
@@ -1094,6 +1108,82 @@ const save = (...ks) => ks.forEach(k => {
   else S.set(k === 'forYou' ? 'foryou' : k, D[k]);
   try { cloudTouch(k); } catch (e) {}           // (al arrancar la nube aún no está lista)
 });
+
+/* ---------- Lo que NO te gusta: deja de salir en Inicio y en la mezcla automática ----------
+   a: artistas ocultos · t: canciones ocultas · sk: artistas que pasas rápido · ts: canciones que pasas rápido */
+D.nope = Object.assign({ a: {}, t: {}, sk: {}, ts: {} }, S.get('nope', {}));
+const nopeArtist = id => !!(id && D.nope.a[+id]);
+const lovedArtist = id => !!id && ((D.set.favArtists || []).some(a => +a.id === +id) || D.artists.some(a => +a.id === +id) || D.likes.some(x => +x.artistId === +id));
+/** ¿Esta canción no debe recomendarse? (tú la ocultaste, o es de un artista que no te gusta) */
+function disliked(t) {
+  if (!t) return false;
+  if (D.nope.t[t.id]) return true;
+  if (D.likes.some(x => x.id === t.id)) return false;
+  return nopeArtist(t.artistId);
+}
+const okArtist = a => !!a && !nopeArtist(a.id);
+const okAlbum = x => !!x && !nopeArtist(x.artist && x.artist.id);
+/* Listas que la app te recomendó (no las que elegiste tú) */
+const REC_CTX = /^(Top Mundial|Top de hoy|Tus favoritos del momento|Tu mezcla|Más canciones para ti)/;
+const isRec = t => !!(t && (t._rec || (P.ctx && REC_CTX.test(P.ctx.name || ''))));
+function trimNope() {
+  const n = D.nope;
+  [['ts', 400], ['sk', 300]].forEach(([k, max]) => { const e = Object.keys(n[k]); if (e.length > max) e.slice(0, e.length - max).forEach(x => delete n[k][x]); });
+}
+/** La app aprende sola: si pasas rápido algo que te recomendó, deja de recomendártelo. */
+function noteSkip(t, pos, dur) {
+  if (!t || !isRec(t) || pos >= 30 || (dur && dur < 60) || D.likes.some(x => x.id === t.id)) return;
+  const n = D.nope;
+  n.ts[t.id] = (n.ts[t.id] || 0) + 1;
+  if (n.ts[t.id] >= 2 && !n.t[t.id]) n.t[t.id] = { n: t.title, ar: t.artist, at: Date.now(), auto: 1 };
+  if (t.artistId && !lovedArtist(t.artistId)) {
+    const s = n.sk[t.artistId] = n.sk[t.artistId] || { c: 0, ids: [] };
+    if (!s.ids.includes(t.id)) { s.ids.push(t.id); s.ids = s.ids.slice(-6); s.c++; s.n = t.artist; }
+    if (s.c >= 3 && !n.a[t.artistId]) {
+      n.a[t.artistId] = { n: t.artist, at: Date.now(), auto: 1 };
+      setTimeout(() => toast(`Ya no te recomendaremos a ${t.artist}. Puedes cambiarlo en Configuración`), 400);
+    }
+  }
+  trimNope(); save('nope');
+}
+/** Si la escuchas completa, ese artista sí te gusta: se le perdonan los saltos. */
+function noteGood(t) {
+  if (!t || !t.artistId) return;
+  const s = D.nope.sk[t.artistId];
+  if (s && s.c > 0) { s.c--; save('nope'); }
+}
+/** Quita de lo que falta por sonar lo que ya no te gusta (solo en lo recomendado). */
+function pruneQueue() {
+  if (!P.q || !P.q.length) return;
+  const rec = !!(P.ctx && REC_CTX.test(P.ctx.name || ''));
+  const bad = x => (rec || x._rec) && disliked(x) && !(P.cur && x.id === P.cur.id);
+  const after = P.q.slice(P.i + 1), keep = after.filter(x => !bad(x));
+  if (keep.length !== after.length) { P.q = P.q.slice(0, P.i + 1).concat(keep); P.list = P.list.filter(x => !bad(x)); try { if (ptab === 'q') renderQueueTab(); } catch (e) {} }
+}
+let homeNopeT = null;
+function homeAfterNope(tid) {
+  if (tid) $$(`#homeBody .row[data-tid="${tid}"]`).forEach(r => { r.style.transition = 'opacity .3s,transform .3s'; r.style.opacity = '0'; r.style.transform = 'translateX(30px)'; setTimeout(() => r.remove(), 320); });
+  else { clearTimeout(homeNopeT); homeNopeT = setTimeout(() => { if (homeLoaded) renderHome(true).catch(() => {}); }, 600); }
+}
+function dislikeTrack(t) {
+  if (!t) return;
+  D.nope.t[t.id] = { n: t.title, ar: t.artist, at: Date.now() };
+  if (D.likes.some(x => x.id === t.id)) { D.likes = D.likes.filter(x => x.id !== t.id); save('likes'); try { updateLikeUI(); } catch (e) {} }
+  save('nope'); vib(15);
+  toast('Listo: esa canción ya no te saldrá en tus recomendaciones');
+  homeAfterNope(t.id); pruneQueue();
+  if (P.cur && P.cur.id === t.id && P.q.length > 1) next('nope');
+}
+/** Oculta (o vuelve a mostrar) un artista en tus recomendaciones. Devuelve true si quedó oculto. */
+function toggleNopeArtist(id, name) {
+  id = +id; if (!id) return false;
+  if (D.nope.a[id]) { delete D.nope.a[id]; delete D.nope.sk[id]; save('nope'); toast(`${name || 'El artista'} puede volver a salir en tus recomendaciones`); homeAfterNope(); return false; }
+  D.nope.a[id] = { n: name || '', at: Date.now() }; delete D.nope.sk[id];
+  save('nope'); vib(15);
+  toast(`Ya no te recomendaremos a ${name || 'este artista'}`);
+  homeAfterNope(); pruneQueue();
+  return true;
+}
 
 /* ---------- Puente con Android (respuestas asíncronas) ---------- */
 const pend = new Map(); let cbn = 0;
@@ -1477,7 +1567,7 @@ function extendQueue() {
   extending = (async () => {
     try {
       const have = new Set(P.q.map(x => x.id).concat(D.hist.slice(0, 25).map(x => x.id)));
-      const keep = x => x && !have.has(x.id);
+      const keep = x => x && !have.has(x.id) && !disliked(x);
       // Desde Descargas o sin internet: primero el resto de tus descargas
       const fromDl = P.ctx && P.ctx.name === 'Descargas';
       if (fromDl) {
@@ -1511,13 +1601,13 @@ function extendQueue() {
         const mainName = (recent.find(x => x.artistId === main) || {}).artist || '';
         genre = genreOfArtist(main, mainName, rel.data);
         const sameGenre = a => !genre || !genreOfName(a.name) || genreOfName(a.name) === genre;
-        const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && sameGenre(a) && (known.has(+a.id) || (a.nb_fan || 0) >= (genre ? 3e5 : 2e6)))).slice(0, 3);
+        const rels = shuffleArr((rel.data || []).filter(a => a.id !== main && okArtist(a) && sameGenre(a) && (known.has(+a.id) || (a.nb_fan || 0) >= (genre ? 3e5 : 2e6)))).slice(0, 3);
         const favs = shuffleArr((D.set.favArtists || []).filter(a => +a.id !== main && (!genre || genreOfName(a.name) === genre) && !rels.some(r => r.id === +a.id))).slice(0, mixMode ? 1 : 2);
         // Como una mezcla: también entran éxitos de artistas famosos del mismo género (o latinos famosos si no se sabe)
         const nLatin = mixMode ? 5 : 3;
         const pool = genre ? GENRES[genre].filter(n => norm(n) !== norm(mainName)) : LATIN;
         const latin = (await Promise.all(shuffleArr(pool.slice()).slice(0, nLatin + 2).map(n => artistByName(n).catch(() => null))))
-          .filter(a => a && a.id !== main && !rels.some(r => r.id === a.id) && !favs.some(f => +f.id === a.id)).slice(0, nLatin);
+          .filter(a => a && a.id !== main && okArtist(a) && !rels.some(r => r.id === a.id) && !favs.some(f => +f.id === a.id)).slice(0, nLatin);
         const tops = await Promise.all([...rels, ...favs, ...latin].map(a => dz(`/artist/${a.id}/top?limit=15`).catch(() => ({ data: [] }))));
         tops.forEach(j => similar.push(...hits(j, mixMode ? 2 : 3)));
         similar = shuffleArr(similar.filter((x, k, arr) => arr.findIndex(y => y.id === x.id) === k)).slice(0, mixMode ? 14 : 10);
@@ -1526,7 +1616,7 @@ function extendQueue() {
       let add = [];
       while (same.length || similar.length) { if (similar.length) add.push(similar.shift()); if (similar.length) add.push(similar.shift()); if (same.length) add.push(same.shift()); }
       if (add.length < 5) { const j = await topTracks('world').catch(() => null); add = add.concat(shuffleArr(((j && j.tracks) || []).filter(x => keep(x) && !add.some(y => y.id === x.id))).slice(0, 15 - add.length)); }
-      add = add.slice(0, 15);
+      add = add.slice(0, 15).map(x => Object.assign({}, x, { _rec: 1 }));   // marcadas: la app las eligió por ti
       if (!add.length) return false;
       P.q.push(...add); P.list.push(...add);
       if (mixMode && P.autoMsg !== 'mix' + genre) { P.autoMsg = 'mix' + genre; if (P.ctx) P.ctx = Object.assign({}, P.ctx, { name: 'Tu mezcla' }); toast(genre ? 'Sigue tu mezcla de ' + GENRE_NAME[genre] : 'Sigue tu mezcla: canciones parecidas y éxitos latinos'); }
@@ -1838,7 +1928,10 @@ function seekTo(s) {
 }
 async function next(auto) {
   if (!P.q.length) return;
-  if (auto && P.repeat === 2) { seekTo(0); resumeAll(); return; }
+  if (auto === true && P.repeat === 2) { seekTo(0); resumeAll(); return; }
+  if (auto === false || auto === undefined) { try { noteSkip(P.cur, P.pos || 0, P.dur || 0); } catch (e) {} }   // la pasaste tú
+  if (auto === 'nope') auto = false;
+  try { pruneQueue(); } catch (e) {}
   if (P.i >= P.q.length - 1 && P.repeat !== 1 && autoplayOn()) {
     setLoading(true);
     await extendQueue();
@@ -1849,6 +1942,7 @@ async function next(auto) {
 }
 function prev() { if (P.pos > 3) { seekTo(0); return; } if (P.i > 0) { P.i--; loadCur(); } else seekTo(0); }
 function onEnded() {
+  try { noteGood(P.cur); } catch (e) {}
   if (P.sleepEnd) { P.sleepEnd = false; setSleep(0); setPlaying(false); toast('Temporizador: música detenida'); return; }
   next(true);
 }
@@ -2119,6 +2213,12 @@ function trackMenu(t, ctx) {
   if (t.albumId) items.push({ ic: 'album', label: 'Ver álbum', sub: t.album, color: 'linear-gradient(135deg,#F59E0B,#F97316)', chev: true, fn: () => { closePlayer(); openAlbum(t.albumId); } });
   if (t.artistId) items.push({ ic: 'music', label: 'Todas las canciones del artista', sub: t.artist, color: 'linear-gradient(135deg,#0EA5E9,#22C55E)', chev: true, fn: () => { closePlayer(); openArtistAll(t.artistId); } });
   if (ctx && ctx.pl) items.push({ ic: 'trash', label: 'Quitar de esta playlist', danger: true, fn: () => removeFromPl(ctx.pl, t.id) });
+  items.push(D.nope.t[t.id]
+    ? { ic: 'ban', label: 'Volver a recomendar esta canción', sub: 'La ocultaste de tus recomendaciones', color: 'linear-gradient(135deg,#64748B,#475569)', fn: () => { delete D.nope.t[t.id]; delete D.nope.ts[t.id]; save('nope'); toast('Esa canción puede volver a salir'); } }
+    : { ic: 'ban', label: 'No me gusta esta canción', sub: 'No volverá a salir en Inicio ni en tu mezcla', color: 'linear-gradient(135deg,#F43F5E,#BE123C)', fn: () => dislikeTrack(t) });
+  if (t.artistId) items.push(nopeArtist(t.artistId)
+    ? { ic: 'ban', label: 'Volver a recomendar a ' + t.artist, sub: 'Está oculto en tus recomendaciones', color: 'linear-gradient(135deg,#64748B,#475569)', fn: () => toggleNopeArtist(t.artistId, t.artist) }
+    : { ic: 'ban', label: 'No recomendar a ' + t.artist, sub: 'Sus canciones no saldrán en Inicio ni en tu mezcla', color: 'linear-gradient(135deg,#F43F5E,#BE123C)', fn: () => toggleNopeArtist(t.artistId, t.artist) });
   const html = `<div class="tm-head">${bgi(t.big || t.cover)}${cvTag(t.cover)}<div class="meta"><b>${esc(t.title)}</b><small>${esc(t.artist)}${t.album ? ' · ' + esc(t.album) : ''}</small></div><button class="tm-play" data-q="play" aria-label="Reproducir">${ic('play', 1)}</button></div>
     <div class="tm-quick">
       <button class="${liked ? 'on' : ''}" data-q="like">${ic(liked ? 'heart-f' : 'heart')}<span>${liked ? 'Te gusta' : 'Me gusta'}</span></button>
@@ -2294,7 +2394,8 @@ async function openArtist(id) {
     const fol = D.artists.some(x => x.id === a.id);
     const disc = (albums.data || []).slice().sort((x, y) => (y.release_date || '').localeCompare(x.release_date || ''));
     fillPage(el, `<div class="ahero">${bgi(a.picture_xl)}<div class="ring">${a.picture_xl ? `<img src="${esc(a.picture_xl)}" alt="">` : '<div class="cv"></div>'}</div><h1>${esc(a.name)}</h1>
-      <div class="followers">${fmtN(a.nb_fan)} fans${a.nb_album ? ' · ' + a.nb_album + ' álbumes' : ''}</div></div>
+      <div class="followers">${fmtN(a.nb_fan)} fans${a.nb_album ? ' · ' + a.nb_album + ' álbumes' : ''}</div>
+      <button class="nope-pill${nopeArtist(a.id) ? ' on' : ''}" data-act="nope">${ic('ban')}<span>${nopeArtist(a.id) ? 'Oculto en tus recomendaciones' : 'No recomendar'}</span></button></div>
       <div class="acts"><button class="btn${fol ? ' on' : ''}" data-act="follow">${fol ? 'Siguiendo' : 'Seguir'}</button>
         <button class="bigplay" data-act="play">${ic('play', 1)}Reproducir</button>
         <button class="ib${P.shuffle ? ' on' : ''}" data-act="shuf" aria-label="Aleatorio">${ic('shuffle')}</button>
@@ -2310,7 +2411,8 @@ async function openArtist(id) {
     bindActs(el, tracks, ctx, {
       follow: b => { const on = toggleFollow({ id: a.id, name: a.name, img: a.picture_medium }); b.textContent = on ? 'Siguiendo' : 'Seguir'; b.classList.toggle('on', on); },
       more5: b => { const l = $('#popPanel .list', el); const open = l.classList.toggle('lim5'); b.textContent = open ? 'Ver más' : 'Ver menos'; },
-      share: () => { const txt = `🎤 Escucha a ${a.name} en BeatNX`; A && A.share ? A.share(txt) : toast(txt); }
+      share: () => { const txt = `🎤 Escucha a ${a.name} en BeatNX`; A && A.share ? A.share(txt) : toast(txt); },
+      nope: b => { const on = toggleNopeArtist(a.id, a.name); b.classList.toggle('on', on); $('span', b).textContent = on ? 'Oculto en tus recomendaciones' : 'No recomendar'; }
     });
   } catch (e) { fillPage(el, errBox(e.message, 'page')); el._retry = () => { popPage(); openArtist(id); }; }
 }
@@ -2665,11 +2767,20 @@ async function artistByName(name) {
   cache[name] = { a: v, at: Date.now() }; LS.set('artid', cache);
   return v;
 }
+/** Los artistas que de verdad escuchas (historial y conteo), del que más al que menos. */
+function myArtists(n) {
+  const cnt = {}, name = {};
+  D.hist.slice(0, 200).forEach((x, k) => { if (x && x.artistId && !nopeArtist(x.artistId)) { cnt[x.artistId] = (cnt[x.artistId] || 0) + (k < 40 ? 2 : 1); name[x.artistId] = x.artist; } });
+  D.likes.forEach(x => { if (x && x.artistId && !nopeArtist(x.artistId)) { cnt[x.artistId] = (cnt[x.artistId] || 0) + 2; name[x.artistId] = x.artist; } });
+  return Object.entries(cnt).filter(([, c]) => c >= 3).sort((a, b) => b[1] - a[1]).slice(0, n).map(([id]) => ({ id: +id, name: name[id] }));
+}
 async function latinMix() {
-  const favs = shuffleArr((D.set.favArtists || []).map(a => ({ id: a.id, name: a.name, picture_medium: a.img }))).slice(0, 3);
-  const found = (await Promise.all(shuffleArr(LATIN.slice()).slice(0, 10).map(n => artistByName(n).catch(() => null)))).filter(Boolean);
+  const favs = shuffleArr((D.set.favArtists || []).filter(okArtist).map(a => ({ id: a.id, name: a.name, picture_medium: a.img }))).slice(0, 3);
+  // Lo que más escuchas también manda en Inicio (no solo la lista fija de artistas latinos)
+  const mine = shuffleArr(myArtists(8)).slice(0, 3);
+  const found = (await Promise.all(shuffleArr(LATIN.slice()).slice(0, 12).map(n => artistByName(n).catch(() => null)))).filter(okArtist).slice(0, 10);
   const seen = new Set(), picks = [];
-  shuffleArr([...favs, ...found]).forEach(a => { if (a && a.id && !seen.has(a.id) && picks.length < 10) { seen.add(a.id); picks.push(a); } });
+  [...mine, ...shuffleArr([...favs, ...found])].forEach(a => { if (a && a.id && !seen.has(a.id) && picks.length < 10) { seen.add(a.id); picks.push(a); } });
   if (picks.length < 3) return null;
   const none = { data: [] };
   const res = await Promise.all(picks.map(a => Promise.all([
@@ -2680,7 +2791,7 @@ async function latinMix() {
     const full = (al.data || []).filter(x => x.record_type !== 'single'), any = al.data || [];
     shuffleArr((full.length >= 2 ? full : any).slice()).slice(0, 2).forEach(x => { if (!alSeen.has(x.id)) { alSeen.add(x.id); albums.push(Object.assign({}, x, { artist: { id: a.id, name: a.name } })); } });
     shuffleArr((pl.data || []).filter(x => !/deezer/i.test(x.title || '')).slice()).slice(0, 2).forEach(x => { if (!plSeen.has(x.id)) { plSeen.add(x.id); pls.push(x); } });
-    shuffleArr((top.data || []).map(T)).slice(0, 3).forEach(t => tracks.push(t));
+    shuffleArr((top.data || []).map(T).filter(t => !disliked(t))).slice(0, 3).forEach(t => tracks.push(t));
   });
   return { artists: found.filter(a => !noPic(a.picture_medium)), albums: shuffleArr(albums), pls: shuffleArr(pls), tracks: shuffleArr(tracks) };
 }
@@ -2689,7 +2800,7 @@ let FAVLIST = [];
 function favHTML() {
   const seen = new Set(); FAVLIST = [];
   // Cambia cada vez: 2 de las que más escuchas (al azar) + éxitos de tus artistas mezclados
-  [...shuffleArr(topPlayed(10)).slice(0, 2), ...(D.forYou || [])].forEach(t => { if (t && !seen.has(t.id)) { seen.add(t.id); FAVLIST.push(t); } });
+  [...shuffleArr(topPlayed(10)).slice(0, 2), ...(D.forYou || [])].forEach(t => { if (t && !seen.has(t.id) && !disliked(t)) { seen.add(t.id); FAVLIST.push(t); } });
   const fa = D.set.favArtists || [];
   if (!FAVLIST.length && !fa.length) return '';
   return `<div class="sh-h"><h2 class="sec">Tus favoritos del momento</h2>${FAVLIST.length ? `<div class="fav-btns"><button data-favshuf aria-label="Reproducir en aleatorio" title="Aleatorio">${ic('shuffle')}</button><button data-favplay>${ic('play', 1)}Reproducir</button></div>` : ''}</div>
@@ -2697,9 +2808,9 @@ function favHTML() {
     ${fa.length ? `<div class="sh-h"><h2 class="sec">Tus artistas</h2><button data-onb>Editar${ic('right')}</button></div><div class="hscroll">${fa.map(a => card({ go: 'artist:' + a.id, img: a.img, t1: a.name, t2: 'Artista', round: true })).join('')}</div>` : ''}`;
 }
 async function buildForYou() {
-  const favs = D.set.favArtists || []; if (!favs.length) return;
+  const favs = (D.set.favArtists || []).filter(okArtist); if (!favs.length) return;
   // Sus 25 canciones más escuchadas, en otro orden cada vez: así la lista no se repite siempre igual
-  const lists = await Promise.all(favs.map(a => dz(`/artist/${a.id}/top?limit=25`).then(j => shuffleArr((j.data || []).map(T))).catch(() => [])));
+  const lists = await Promise.all(favs.map(a => dz(`/artist/${a.id}/top?limit=25`).then(j => shuffleArr((j.data || []).map(T).filter(t => !disliked(t)))).catch(() => [])));
   const out = [];
   for (let k = 0; k < 25; k++) shuffleArr(lists.slice()).forEach(l => { if (l[k] && !out.some(x => x.id === l[k].id)) out.push(l[k]); });
   if (!out.length) return;
@@ -2723,8 +2834,11 @@ async function renderHome(soft) {
       more = wt.tracks.slice(5, 20);
     }
     if (!arList || arList.length < 6) arList = [...(arList || []), ...(await popularArtists().catch(() => []))].filter((a, k, l) => l.findIndex(x => x.id === a.id) === k);
-    const tracks = wt.tracks, favPl = !!mix;
-    const hist = D.hist.slice(0, 12), als = al.data || [], ars = arList || [], pls = pl.data || [];
+    // Fuera lo que no te gusta: artistas ocultos y canciones que pasaste
+    const tracks = wt.tracks.filter(t => !disliked(t)), favPl = !!mix;
+    more = (more || []).filter(t => !disliked(t));
+    al = { data: (al.data || []).filter(okAlbum) };
+    const hist = D.hist.slice(0, 12), als = al.data, ars = (arList || []).filter(okArtist), pls = pl.data || [];
     const offN = Object.keys(D.offline).length;
     const heros = [];
     if (als[0]) heros.push({ go: 'album:' + als[0].id, img: als[0].cover_xl || als[0].cover_big || als[0].cover_medium, tag: mix ? 'Álbum para ti' : 'Álbum #1', t1: als[0].title, t2: (als[0].artist && als[0].artist.name) || '' });
@@ -3010,6 +3124,7 @@ function settingsHTML() {
     <div class="menu">
       <button class="mi" data-m="hist"><span class="ico" style="background:#6366F1">${ic('clock')}</span><div class="meta"><div class="t1">Escuchado recientemente</div><small>${D.hist.length} canciones</small></div>${ic('right')}</button>
       <button class="mi" data-m="favs"><span class="ico" style="background:#EC4899">${ic('user')}</span><div class="meta"><div class="t1">Artistas favoritos</div><small>${(D.set.favArtists || []).length} elegidos</small></div>${ic('right')}</button>
+      <button class="mi" data-m="nope"><span class="ico" style="background:linear-gradient(135deg,#F43F5E,#BE123C)">${ic('ban')}</span><div class="meta"><div class="t1">Música que no te gusta</div><small>${nopeText()}</small></div>${ic('right')}</button>
       <button class="mi" data-m="cloud"><span class="ico" style="background:linear-gradient(135deg,#38BDF8,#6366F1)">${ic('cloud')}</span><div class="meta"><div class="t1">Copia en la nube</div><small id="cloudTxt">${esc(cloudText())}</small></div>${ic('right')}</button>
       <button class="mi" data-m="dls"><span class="ico" style="background:linear-gradient(135deg,#22C55E,#0EA5E9)">${ic('download')}</span><div class="meta"><div class="t1">Descargas</div><small>${Object.keys(D.offline).length} canciones · ${(offSize() / 1048576).toFixed(0)} MB</small></div>${ic('right')}</button>
       <button class="mi" data-m="autoplay"><span class="ico" style="background:#22C55E">${ic('spark')}</span><div class="meta"><div class="t1">Reproducción automática</div><small>Al terminar, más del mismo artista y parecidas</small></div><span class="sw-t${autoplayOn() ? ' on' : ''}" id="apSw"></span></button>
@@ -3023,6 +3138,30 @@ function settingsHTML() {
       <button class="mi" data-m="about"><span class="ico" style="background:#8B5CF6">${ic('info')}</span><div class="meta"><div class="t1">Acerca de BeatNX</div><small>Créditos y licencia</small></div>${ic('right')}</button>
     </div>
     <div class="foot"><b>BeatNX</b> · Versión ${esc(appVersion())}${BETA ? ` · <b style="color:var(--acc)">BETA</b> hasta el ${new Date(BETA.until).toLocaleDateString('es')}` : ''}<br>© 2026 Nexora · Eduard Gamer</div></div>`;
+}
+function nopeText() {
+  const a = Object.keys(D.nope.a).length, t = Object.keys(D.nope.t).length;
+  if (!a && !t) return 'Nada oculto todavía';
+  return [a ? a + (a === 1 ? ' artista' : ' artistas') : '', t ? t + (t === 1 ? ' canción' : ' canciones') : ''].filter(Boolean).join(' · ') + ' ocultos';
+}
+/* Lo que ocultaste (o que la app aprendió que no te gusta), con opción de devolverlo */
+function openNope() {
+  const el = pushPage(`<div class="set-top"><span class="ico" style="background:linear-gradient(135deg,#F43F5E,#BE123C)">${ic('ban')}</span><h1>No me gusta</h1></div><div class="set-wrap" id="nopeBody"></div>`, 'No me gusta');
+  const row = (k, id, v) => `<div class="mi nope-row"><span class="ico" style="background:${k === 'a' ? '#EC4899' : '#6366F1'}">${ic(k === 'a' ? 'user' : 'music')}</span><div class="meta"><div class="t1">${esc(v.n || (k === 'a' ? 'Artista' : 'Canción'))}</div><small>${k === 't' && v.ar ? esc(v.ar) + ' · ' : ''}${v.auto ? 'La app aprendió que lo pasas' : 'Lo ocultaste tú'}</small></div><button class="btn nope-un" data-unnope="${k}:${esc(id)}">Mostrar</button></div>`;
+  const paint = () => {
+    const ar = Object.entries(D.nope.a).sort((x, y) => (y[1].at || 0) - (x[1].at || 0)), tr = Object.entries(D.nope.t).sort((x, y) => (y[1].at || 0) - (x[1].at || 0));
+    $('#nopeBody', el).innerHTML = `<p class="nope-help">Lo que está aquí <b>no sale</b> en Inicio ni en la mezcla automática. La app también aprende sola: si pasas rápido varias canciones que te recomendó de un mismo artista, deja de mostrártelo. Igual puedes buscarlo cuando quieras.</p>
+      <div class="sh-h"><h2 class="sec">Artistas</h2></div>${ar.length ? `<div class="menu">${ar.map(([id, v]) => row('a', id, v)).join('')}</div>` : '<p class="nope-empty">Ningún artista oculto. Para ocultar uno: en una canción toca ⋯ y luego «No recomendar».</p>'}
+      <div class="sh-h"><h2 class="sec">Canciones</h2></div>${tr.length ? `<div class="menu">${tr.map(([id, v]) => row('t', id, v)).join('')}</div>` : '<p class="nope-empty">Ninguna canción oculta. Toca ⋯ en una canción y luego «No me gusta esta canción».</p>'}`;
+  };
+  el.addEventListener('click', e => {
+    const b = e.target.closest('[data-unnope]'); if (!b) return;
+    const i = b.dataset.unnope.indexOf(':'), k = b.dataset.unnope.slice(0, i), id = b.dataset.unnope.slice(i + 1);
+    delete D.nope[k][id]; delete D.nope[k === 'a' ? 'sk' : 'ts'][id];
+    save('nope'); paint(); toast('Listo, puede volver a salir'); if (k === 'a') homeAfterNope();
+    const sb = $('#setBody'); if (sb) sb.innerHTML = settingsHTML();
+  });
+  paint();
 }
 function openSettings() {
   const el = pushPage(`<div class="set-top"><span class="ico">${ic('gear')}</span><h1>Configuración</h1></div><div id="setBody">${settingsHTML()}</div>`, 'Configuración');
@@ -3104,6 +3243,7 @@ function meAction(e) {
   else if (k === 'about') aboutSheet();
   else if (k === 'engine') engineSheet();
   else if (k === 'favs') openOnb(false);
+  else if (k === 'nope') openNope();
   else if (k === 'dls') openDownloads();
   else if (k === 'cloud') { if (!D.set.auth || D.set.auth.guest) needLogin('guardar tus datos en la nube'); else if (CL.st === 'relogin') logoutSheet(); else cloudSync(true); }
   else if (k === 'autoplay') { D.set.autoplay = !autoplayOn(); save('set'); $('#apSw').classList.toggle('on', autoplayOn()); toast(autoplayOn() ? 'Reproducción automática activada' : 'Reproducción automática desactivada'); prefetchNext(); }
@@ -3440,7 +3580,7 @@ $('#onbGo').onclick = finishOnb;
 $('#onbClose').onclick = closeOnb;
 
 /* ---------- Copia en la nube (Firestore): tus datos en cualquier celular ---------- */
-const CLOUD_KEYS = ['likes', 'pls', 'albums', 'artists', 'set', 'hist', 'stats', 'plays', 'recent', 'rs'];
+const CLOUD_KEYS = ['likes', 'pls', 'albums', 'artists', 'set', 'hist', 'stats', 'plays', 'recent', 'rs', 'nope'];
 const CL = { db: null, st: 'off', last: 0, busy: null, dirty: new Set(), t: null, warned: false };
 const syncKey = () => userPrefix(WHO) + 'syncat';
 const cloudOn = () => fbReady() && !!(D.set.auth && D.set.auth.uid && !D.set.auth.guest && D.set.auth.uid === WHO);
@@ -3462,12 +3602,14 @@ function cloudMerge(k, rv, lv) {
     Object.entries(rv).forEach(([key, val]) => { if (val !== '' && val != null) out[key] = val; });
     return out;
   }
+  if (k === 'nope' && lv && rv) { const o = {}; ['a', 't', 'sk', 'ts'].forEach(x => { o[x] = Object.assign({}, rv[x] || {}, lv[x] || {}); }); return o; }
   if (k === 'stats' && lv && rv) return { plays: Math.max(+lv.plays || 0, +rv.plays || 0), secs: Math.max(+lv.secs || 0, +rv.secs || 0) };
   if (lv && rv && typeof lv === 'object' && typeof rv === 'object') return Object.assign({}, rv, lv);
   return emptyVal(lv) ? rv : lv;
 }
 function applyCloud(k, v) {
   if (k === 'set') { D.set = Object.assign({ name: '', accent: 'nx' }, v, { auth: D.set.auth }); const { auth, ...r } = D.set; S.set('set', r); return; }
+  if (k === 'nope') v = Object.assign({ a: {}, t: {}, sk: {}, ts: {} }, v || {});
   D[k] = v; S.set(k, v);
 }
 async function cloudDb() {
